@@ -32,12 +32,12 @@ button:focus-visible{outline:3px solid var(--air);outline-offset:2px}
 <div class="wrap" id="app">
  <div class="bar"><a href="/" style="color:inherit">← All sessions</a><span id="topic"></span><span id="pos"></span><span class="onair">On air</span><span class="timer" id="timer">0:00</span><div class="meter"><i id="lvl"></i></div></div>
  <h1 id="q">Loading questions…</h1>
- <div class="btns"><button id="prev">← Previous</button><button id="rec">● Record answer</button><button id="next">Next →</button><button id="show">Show my written answer</button></div>
+ <div class="btns"><button id="prev">← Previous</button><button id="rec">● Record answer</button><button id="next">Next →</button><button id="show">Show my notes</button></div>
  <div class="box"><div class="label">What you said</div><div id="tx">Press Record and answer aloud. Your words appear here.</div></div>
  <div class="box" id="gradebox" hidden><div class="label">Coach's grade</div><div style="display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap"><div id="grade" style="font:600 64px/1 var(--q);min-width:1.6em">…</div><div id="gradetxt" style="flex:1;min-width:0;font-size:22px"></div></div></div>
  <div class="box" id="statbox" hidden><div class="label">This take</div><div class="stats" id="stats"></div><p id="note" style="margin:12px 0 0;font-size:18px;color:var(--mute)"></p></div>
- <div class="box" id="ansbox" hidden><div class="label">Your written answer</div><div id="ans"></div></div>
- <div class="keys">Keys: Space records or stops · ← → change question · A shows the written answer. Takes are saved for Claude to review.</div>
+ <div class="box" id="ansbox" hidden><div class="label">Your notes</div><div id="ans"></div></div>
+ <div class="keys">Keys: Space records or stops · ← → change question · A shows your notes. Takes are saved for Claude to review.</div>
 </div>
 <script>
 let Q=[],i=0,recOn=false,t0=0,tick,mr,chunks=[],sr,finalTx="",stream,ctx,an,raf,pauses=[],silentSince=null,speechStart=null;
@@ -45,10 +45,10 @@ const $=id=>document.getElementById(id);
 const FILLERS=["um","uh","er","ah","erm","you know","i mean","sort of","kind of","basically","actually","like i said","so yeah"];
 const SID=encodeURIComponent(new URLSearchParams(location.search).get("s"));
 fetch("/api/session?s="+SID).then(r=>r.json()).then(d=>{if(d.error){$("q").textContent="Session not found. Go back to all sessions.";return}Q=d.questions;document.title=d.topic+" · Rehearse";$("topic").textContent=d.id+" · "+d.topic;show()});
-function show(){const x=Q[i];$("pos").textContent=`Question ${i+1} of ${Q.length} · written answer ${x.a?x.a.split(/\s+/).length+" words":"not given"}`;$("q").textContent=x.q;$("ans").textContent=x.a;$("ansbox").hidden=true;$("show").textContent="Show my written answer";$("tx").textContent="Press Record and answer aloud. Your words appear here.";$("statbox").hidden=true;$("gradebox").hidden=true;$("timer").textContent="0:00"}
+function show(){const x=Q[i];$("pos").textContent=`Question ${i+1} of ${Q.length} · notes ${x.a?x.a.split(/\s+/).length+" words":"not given"}`;$("q").textContent=x.q;$("ans").textContent=x.a;$("ansbox").hidden=true;$("show").textContent="Show my notes";$("tx").textContent="Press Record and answer aloud. Your words appear here.";$("statbox").hidden=true;$("gradebox").hidden=true;$("timer").textContent="0:00"}
 function go(d){if(recOn)return;i=Math.max(0,Math.min(Q.length-1,i+d));show()}
 $("prev").onclick=()=>go(-1);$("next").onclick=()=>go(1);
-$("show").onclick=()=>{const h=$("ansbox").hidden;$("ansbox").hidden=!h;$("show").textContent=h?"Hide my written answer":"Show my written answer"};
+$("show").onclick=()=>{const h=$("ansbox").hidden;$("ansbox").hidden=!h;$("show").textContent=h?"Hide my notes":"Show my notes"};
 $("rec").onclick=()=>recOn?stop():start();
 addEventListener("keydown",e=>{if(e.target.tagName==="BUTTON"&&e.key===" ")e.preventDefault();if(e.key===" "){e.preventDefault();$("rec").click()}if(e.key==="ArrowRight")go(1);if(e.key==="ArrowLeft")go(-1);if(e.key.toLowerCase()==="a")$("show").click()});
 const fmt=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`;
@@ -81,7 +81,7 @@ function stop(){
    $("gradetxt").innerHTML="";add("Measured:",meas(t.metrics));add("","Grading…");
    const poll=()=>fetch(`/grade?s=${SID}&id=${t.id}`).then(r=>r.json()).then(g=>{if(i+1!==qn)return;if(g.pending)return setTimeout(poll,1000);
     $("gradetxt").innerHTML="";if(g.error){$("grade").textContent="?";add("Grading failed:",g.error);add("Measured:",meas(t.metrics));return}
-    $("grade").textContent=g.grade;add("Next take:",g.recommendation);add("Fluency:",g.fluency);add("Content:",g.content);add("Measured:",meas(t.metrics))});
+    $("grade").textContent=g.grade;add("Next take:",g.recommendation);add("Fluency:",g.fluency);add("Coherence:",g.coherence);add("Measured:",meas(t.metrics))});
    poll();
   }).catch(()=>{$("grade").textContent="?";$("gradetxt").textContent="Couldn't reach the grading server."})};mr.stop();
  setTimeout(()=>report(dur),700);

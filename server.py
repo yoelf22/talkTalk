@@ -41,23 +41,27 @@ def transcribe(audio, wjson):
     return metrics(wjson)
 
 def grade(text, m, q, sess):
-    item = sess["questions"][q - 1]
-    prompt = f"""You are a speaking coach. Someone is rehearsing answers for an interview.
-Session: {sess['topic']} / {sess['name']} / {sess['date']}. Grade this spoken answer and give one short recommendation.
-Context from the speaker: {sess.get('context') or '(none)'}
+    prompt = f"""You are a speaking coach. Someone is rehearsing an interview answer out loud. Judge ONLY what they
+actually said and how they said it. You know nothing about their subject beyond this transcript, so never add,
+correct or suggest facts, examples, dates or claims they did not say themselves.
 
-Question: {item['q']}
-Their prepared written answer (reference for content, not a script to recite; may be empty):
-{item['a'] or '(none)'}
+Judge two things:
+- Coherence: does what they said hold together? One clear thread, ideas in a sensible order, no detours or
+  restarts, and a clear final line instead of trailing off.
+- Fluency: even pace, pauses between sentences rather than mid-sentence, few fillers, few cut-off words.
 
-Whisper transcript of what he said (fillers kept):
+The question (only to tell whether they stayed on it): {sess["questions"][q - 1]["q"]}
+
+Whisper transcript of what they said (fillers kept):
 {text}
 
 Measured: {json.dumps(m)}
-Targets: 130-160 wpm; under 5 fillers per 100 words; 45-120 seconds; pauses only between sentences; the answer
-must actually answer the question and land a clear final line.
+Targets: 130-160 wpm; under 5 fillers per 100 words; 45-120 seconds; pauses only between sentences.
 
-Return ONLY JSON: {{"grade": "A|A-|B+|B|B-|C+|C|C-|D", "fluency": "<=12 words", "content": "<=12 words",
+The recommendation must work with their own words: quote or point to a specific part of what they said (where the
+thread broke, which sentence to cut or move, which line could close the answer) or name one delivery fix.
+
+Return ONLY JSON: {{"grade": "A|A-|B+|B|B-|C+|C|C-|D", "fluency": "<=12 words", "coherence": "<=12 words",
 "recommendation": "the single most useful fix for the next take, <=35 words, concrete, no preamble"}}"""
     out = subprocess.run([CLAUDE, "-p", "--model", "sonnet", "--tools", ""], input=prompt, capture_output=True,
                          text=True, env={k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}, timeout=180).stdout
@@ -98,9 +102,9 @@ def parse(f):
     return [{"q": x["q"], "a": x["a"].strip()} for x in qs]
 
 def details(t):
-    topic, name, date, context = (str(t.get(k, "")).strip() for k in ("topic", "name", "date", "context"))
+    topic, name, date = (str(t.get(k, "")).strip() for k in ("topic", "name", "date"))
     if not (topic and name and date): raise ValueError("topic, name and date are required")
-    return {"topic": topic, "name": name, "date": date, "context": context}
+    return {"topic": topic, "name": name, "date": date}
 
 def questions(t):
     qs = [{"q": str(x.get("q", "")).strip(), "a": str(x.get("a", "")).strip()} for x in t.get("questions", [])]
@@ -109,8 +113,9 @@ def questions(t):
     return qs
 
 def update(sid, t):
-    """Edits topic, name, date, context and the questions. The ID stays as it is."""
+    """Edits topic, name, date and the questions. The ID stays as it is."""
     sess = {**load(sid), **details(t), "questions": questions(t)}
+    sess.pop("context", None)  # retired field: the grader judges only what was said
     json.dump(sess, open(f"{S}/{sid}/session.json", "w"), indent=1, ensure_ascii=False)
     return sess
 

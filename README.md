@@ -26,15 +26,19 @@ through fifteen questions times ten takes.
 
 talkTalk is the feedback half of rehearsal. You give it the questions you expect and the answers you'd like to give.
 It shows one question at a time in large type, records you answering it, and within about 15 seconds tells you how
-it went: your pace, your fillers, where you hesitated, a letter grade with a note on fluency and one on content,
+it went: your pace, your fillers, where you hesitated, a letter grade with a note on fluency and one on coherence,
 and the single most useful thing to fix on the next take.
+
+The grade is about what you said and how you said it, nothing else. talkTalk doesn't know your subject, so it
+never tells you what you should have said; its advice points at your own words: where the thread broke, which
+sentence to cut or move, which line could close the answer.
 
 ## How to prepare with it
 
-1. **Write your answers as notes, not scripts.** The written answer tells talkTalk what you meant to say, so it can
-   check whether you said it. You are not meant to recite it; a memorized answer sounds memorized.
-2. **Answer without looking.** Read the question, press Space, and talk. Peek at your written answer (press A) only
-   after the take.
+1. **Prepare notes if they help, not scripts.** Each question can carry your own notes. They are for you only and
+   are never sent to the grader. A memorized answer sounds memorized.
+2. **Answer without looking.** Read the question, press Space, and talk. Peek at your notes (press A) only after
+   the take.
 3. **Fix one thing per take.** Each grade ends with one recommendation. Apply that, and only that, on the next take.
 4. **Repeat until it holds.** Move on when the grade stays steady and the answer fits the targets talkTalk grades
    against: 45 seconds to 2 minutes, 130 to 160 words per minute, under 5 fillers per 100 words, pauses only between
@@ -42,16 +46,14 @@ and the single most useful thing to fix on the next take.
 5. **Come back another day.** Every session is kept and searchable on the dashboard, so you can run an interview's
    questions again closer to the date. Every take (recording, transcript, grade) is saved in the session's folder.
 
-Recordings and transcription stay on your machine (Whisper runs locally). The transcript and your written answer go
-to Claude for grading, and Chrome's live transcript uses Google's speech recognition.
+Recordings and transcription stay on your machine (Whisper runs locally). The transcript and the question go to Claude
+for grading, and Chrome's live transcript uses Google's speech recognition.
 
 ## How it works
 
 1. **Create a session.** On the dashboard, click **+ New session** and fill in the topic, a name, the date, and your
-   questions. A written answer for each question is optional; when present, the grade checks your spoken answer
-   against it. To skip the typing, drop your questionnaire (.txt, .md, .docx, .rtf, .odt, .html…) into the data
-   folder and pick it in the form: every line ending in `?` becomes a question, and the lines after it its written
-   answer. Check the rows before you create the session; the file then moves into the session's folder. Each
+   questions, with optional notes for yourself under each. To skip the typing, drop your questionnaire (.txt, .md, .docx, .rtf, .odt, .html…) into the data
+   folder and pick it in the form: every line ending in `?` becomes a question, and the lines after it its notes. Check the rows before you create the session; the file then moves into the session's folder. Each
    session gets an ID made of the topic's first word and a counter, such as `Product-1`, `Product-2`.
 2. **Rehearse.** Open the session and answer each question aloud. Chrome shows a live transcript while you talk.
 3. **Read the feedback.** When you stop, Whisper transcribes the recording with word timings and fillers kept
@@ -62,13 +64,10 @@ to Claude for grading, and Chrome's live transcript uses Google's speech recogni
    - cut-off words ("I- I think")
 
    Claude (Sonnet, through the Claude Code CLI) then grades the take from A to D, with a note on fluency, a note on
-   content, and one concrete fix for the next take.
-4. **Come back later.** The dashboard lists every session and can search them by topic, name, ID or context, so you
+   coherence, and one concrete fix for the next take.
+4. **Come back later.** The dashboard lists every session and can search them by topic, name or ID, so you
    can return to an earlier interview and rehearse it again. **Edit** on a session changes its topic, name, date,
-   context, questions and written answers; the session ID stays the same.
-
-The optional **Context** field is where you tell the grader what the interview is: who is asking, the format and
-length, the audience, what you want them to take away. The grade takes it into account.
+   questions and notes; the session ID stays the same.
 
 ## Requirements
 
@@ -90,7 +89,7 @@ If your Whisper lives elsewhere, edit the interpreter path in `run.sh`.
 This starts the server on http://127.0.0.1:8795 (if it isn't already running) and opens it in Chrome. Allow the
 microphone when Chrome asks. The first start takes a few seconds while the Whisper model loads.
 
-Keys on the rehearsal page: **Space** records or stops, **← →** change question, **A** shows your written answer.
+Keys on the rehearsal page: **Space** records or stops, **← →** change question, **A** shows your notes.
 
 Optional: `launcher.applescript` builds a double-click Mac app. Edit the path inside it to where you cloned the
 repo, then run the `osacompile` line at its top.

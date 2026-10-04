@@ -37,7 +37,6 @@ label input,label textarea,label select{text-transform:none;letter-spacing:0;col
    <label>Name<input id="name" required></label>
    <label style="flex:0 1 200px">Date<input id="date" type="date" required></label>
   </div>
-  <label>Context (optional)<textarea id="context" rows="3" placeholder="Who is interviewing, the format and length, the audience, what you want them to take away. The grader reads this."></textarea></label>
   <p class="mute">Session ID: <b id="sid">—</b></p>
   <div id="qpart">
    <label>Import questions from a file<select id="src"></select></label>
@@ -60,11 +59,11 @@ const nextId=t=>{const w=word(t);return w+"-"+(1+Math.max(0,...S.map(x=>x.id).fi
 const el=(tag,props,...kids)=>{const e=Object.assign(document.createElement(tag),props);e.append(...kids);return e};
 
 function render(){
- const f=$("search").value.trim().toLowerCase(),hits=S.filter(x=>!f||[x.topic,x.name,x.id,x.context].join(" ").toLowerCase().includes(f));
+ const f=$("search").value.trim().toLowerCase(),hits=S.filter(x=>!f||[x.topic,x.name,x.id].join(" ").toLowerCase().includes(f));
  $("list").replaceChildren(...(hits.length?hits.map(x=>{const ed=el("button",{type:"button",textContent:"Edit"});ed.onclick=()=>edit(x);
   return el("div",{className:"box sess"},el("a",{href:"rehearse.html?s="+encodeURIComponent(x.id)},
   el("b",{},x.topic),el("div",{className:"mute"},`${x.id} · ${x.name} · ${x.date} · ${x.questions.length} questions · ${x.takes} takes`),
-  ...(x.context?[el("div",{className:"mute"},x.context)]:[])),ed)}):
+  ),ed)}):
   [el("p",{className:"mute"},S.length?"No session matches.":"No sessions yet. Start one with + New session.")]));
 }
 fetch("/api/sessions").then(r=>r.json()).then(d=>{S=d;render()});
@@ -73,7 +72,7 @@ $("search").oninput=render;
 function addQ(x={q:"",a:""},focus=true){
  const n=$("qs").children.length+1,rm=el("button",{type:"button",textContent:"Remove"});
  const row=el("div",{className:"qrow"},el("label",{},`Question ${n}`,el("textarea",{className:"q",required:n===1,rows:2,value:x.q})),
-  el("label",{},"Your written answer (optional)",el("textarea",{className:"a",value:x.a})),el("div",{},rm));
+  el("label",{},"Your notes (optional, for you only; not sent to the grader)",el("textarea",{className:"a",value:x.a})),el("div",{},rm));
  rm.onclick=()=>{row.remove();[...$("qs").children].forEach((r,k)=>r.querySelector("label").firstChild.textContent=`Question ${k+1}`)};
  $("qs").append(row);if(focus)row.querySelector("textarea").focus();
 }
@@ -85,13 +84,13 @@ $("src").onchange=()=>{const f=$("src").value;if(!f)return;$("ferr").textContent
   $("qs").replaceChildren();d.forEach(x=>addQ(x,false));if(!$("topic").value)$("topic").focus()})};
 function mode(sess){editing=sess;$("ftitle").textContent=sess?"Edit session":"New session";$("submit").textContent=sess?"Save":"Create and rehearse";
  $("qpart").hidden=!!sess;$("renum").hidden=!sess;$("ferr").textContent="";$("form").hidden=false;$("form").scrollIntoView()}
-function edit(x){mode(x);for(const k of ["topic","name","date","context"])$(k).value=x[k]||"";$("qs").replaceChildren();x.questions.forEach(q=>addQ(q,false));$("sid").textContent=x.id+" (stays the same)";$("topic").focus()}
-$("new").onclick=()=>{if(editing){for(const k of ["topic","name","date","context"])$(k).value="";$("qs").replaceChildren()}mode(null);$("sid").textContent="—";loadFiles();$("date").value||=new Date().toISOString().slice(0,10);if(!$("qs").children.length)addQ();$("topic").focus()};
-$("cancel").onclick=()=>{$("form").hidden=true;if(editing){editing=null;for(const k of ["topic","name","date","context"])$(k).value="";$("qs").replaceChildren()}};
+function edit(x){mode(x);for(const k of ["topic","name","date"])$(k).value=x[k]||"";$("qs").replaceChildren();x.questions.forEach(q=>addQ(q,false));$("sid").textContent=x.id+" (stays the same)";$("topic").focus()}
+$("new").onclick=()=>{if(editing){for(const k of ["topic","name","date"])$(k).value="";$("qs").replaceChildren()}mode(null);$("sid").textContent="—";loadFiles();$("date").value||=new Date().toISOString().slice(0,10);if(!$("qs").children.length)addQ();$("topic").focus()};
+$("cancel").onclick=()=>{$("form").hidden=true;if(editing){editing=null;for(const k of ["topic","name","date"])$(k).value="";$("qs").replaceChildren()}};
 $("addq").onclick=addQ;
 $("topic").oninput=()=>editing||($("sid").textContent=$("topic").value.trim()?nextId($("topic").value):"—");
 $("form").onsubmit=e=>{e.preventDefault();$("ferr").textContent="";
- const det={topic:$("topic").value,name:$("name").value,date:$("date").value,context:$("context").value};
+ const det={topic:$("topic").value,name:$("name").value,date:$("date").value};
  const questions=[...$("qs").children].map(r=>({q:r.querySelector(".q").value,a:r.querySelector(".a").value})).filter(x=>x.q.trim());
  if(editing)return fetch("/api/session?s="+encodeURIComponent(editing.id),{method:"POST",body:JSON.stringify({...det,questions})}).then(r=>r.json())
   .then(d=>{if(d.error)return $("ferr").textContent=d.error;Object.assign(editing,d);editing=null;$("form").hidden=true;$("qs").replaceChildren();render()})

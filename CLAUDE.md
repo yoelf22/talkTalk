@@ -21,11 +21,11 @@ This repo is public. Interview content (questions, written answers, recordings, 
 
 `server.py` (stdlib `http.server`, binds 127.0.0.1:8795) plus two pages with all UI and JS inline: `index.html` (dashboard: search + session list + new-session form) and `rehearse.html?s=<id>` (one session).
 
-Data: `<data dir>/<id>/session.json` = `{id, topic, name, date, context, questions: [{q, a}], source}` (`context` is free text the grading prompt includes; `source` is the imported questionnaire's filename); takes in `<data dir>/<id>/takes/`. On every start the server (re)writes `<data dir>/talkTalk.html`, a file:// page that redirects to the live dashboard or says how to start the server. The ID is the topic's first word (alphanumerics only) + `-` + (highest existing counter for that word + 1). The ID is also the folder name; a folder renamed by hand (e.g. `Jane Doe interview`) keeps working as long as `session.json`'s `id` matches. Every endpoint validates IDs against `SID` in `server.py` (letters, digits, spaces, `.'()-`, no slashes).
+Data: `<data dir>/<id>/session.json` = `{id, topic, name, date, questions: [{q, a}], source}` (`a` is the speaker's private notes, shown on the rehearse page and never sent to the grader; `source` is the imported questionnaire's filename); takes in `<data dir>/<id>/takes/`. On every start the server (re)writes `<data dir>/talkTalk.html`, a file:// page that redirects to the live dashboard or says how to start the server. The ID is the topic's first word (alphanumerics only) + `-` + (highest existing counter for that word + 1). The ID is also the folder name; a folder renamed by hand (e.g. `Jane Doe interview`) keeps working as long as `session.json`'s `id` matches. Every endpoint validates IDs against `SID` in `server.py` (letters, digits, spaces, `.'()-`, no slashes).
 
 Questionnaire import: files in the data dir root (`GET /api/files`) are parsed by `parse()` (`GET /api/parse?f=`; macOS `textutil` for anything but .txt/.md): a line ending in `?` starts a question, following lines are its answer, bullets/numbering/`Q:`/`A:`/markdown emphasis stripped. On create, the chosen `source` file moves into `<id>/`.
 
-Endpoints: `GET /api/sessions` (list, with take counts), `POST /api/sessions` (create), `GET /api/session?s=`, `POST /api/session?s=` (edit topic/name/date/context and the questions; the ID never changes. Takes are filed by question number, so inserting or removing a question shifts which question older takes belong to; grade files written since this change also store the question text), `POST /audio?s=&q=`, `GET /grade?s=&id=`, `POST /take?s=&q=`.
+Endpoints: `GET /api/sessions` (list, with take counts), `POST /api/sessions` (create), `GET /api/session?s=`, `POST /api/session?s=` (edit topic/name/date and the questions; the ID never changes. Takes are filed by question number, so inserting or removing a question shifts which question older takes belong to; grade files written since this change also store the question text), `POST /audio?s=&q=`, `GET /grade?s=&id=`, `POST /take?s=&q=`.
 
 Each take has **two independent pipelines**:
 
@@ -34,6 +34,6 @@ Each take has **two independent pipelines**:
 
 Details that matter when editing:
 - `grade()` strips `ANTHROPIC_API_KEY` from the subprocess env so the CLI uses the user's subscription login, not API billing. Keep that.
-- Claude's output is parsed by regex-grabbing the first `{...}` block; the JSON shape (`grade`, `fluency`, `content`, `recommendation`) is what `rehearse.html` renders.
+- Claude's output is parsed by regex-grabbing the first `{...}` block; the JSON shape (`grade`, `fluency`, `coherence`, `recommendation`) is what `rehearse.html` renders.
 - Question numbers are 1-based in URLs and filenames. The page drops stale responses if the user has moved to another question (`if(i+1!==qn)return`).
-- Written answers are optional; the grading prompt says `(none)` when empty.
+- The grader judges only the transcript (coherence, fluency) plus the question to check it stayed on topic. The user explicitly does not want written answers, session context or any outside facts fed to it: it once kept pushing a "fact" from the notes that the user never said. Don't add them back.
