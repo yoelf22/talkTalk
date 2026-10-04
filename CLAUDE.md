@@ -15,13 +15,13 @@ Interview-rehearsal tool: one question at a time, record a spoken answer, get it
 
 ## Public repo
 
-This repo is public. Interview content (questions, written answers, recordings, grades) lives only in `sessions/`, which is gitignored. Never commit sample questions, a `questions.json`, or anything naming a real interview, and keep the grading prompt generic.
+This repo is public. Interview content (questions, written answers, recordings, grades) lives outside the repo, in `~/Desktop/talk rehersals/` (override with `TALKTALK_DIR`). Never commit sample questions, a `questions.json`, or anything naming a real interview, and keep the grading prompt generic.
 
 ## Architecture
 
 `server.py` (stdlib `http.server`, binds 127.0.0.1:8795) plus two pages with all UI and JS inline: `index.html` (dashboard: search + session list + new-session form) and `rehearse.html?s=<id>` (one session).
 
-Data: `sessions/<id>/session.json` = `{id, topic, name, date, questions: [{q, a}]}`; takes in `sessions/<id>/takes/`. The ID is the topic's first word (alphanumerics only) + `-` + (highest existing counter for that word + 1). Every endpoint validates the ID against `[A-Za-z0-9]+-\d+`, and static GETs under `/sessions` return 404, so recordings are only reachable through the API.
+Data: `<data dir>/<id>/session.json` = `{id, topic, name, date, questions: [{q, a}]}`; takes in `<data dir>/<id>/takes/`. On every start the server (re)writes `<data dir>/talkTalk.html`, a file:// page that redirects to the live dashboard or says how to start the server. The ID is the topic's first word (alphanumerics only) + `-` + (highest existing counter for that word + 1). Every endpoint validates the ID against `[A-Za-z0-9]+-\d+`.
 
 Endpoints: `GET /api/sessions` (list, with take counts), `POST /api/sessions` (create), `GET /api/session?s=`, `POST /audio?s=&q=`, `GET /grade?s=&id=`, `POST /take?s=&q=`.
 

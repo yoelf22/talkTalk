@@ -54,8 +54,10 @@ repo, then run the `osacompile` line at its top.
 
 ## Your data
 
-Sessions, recordings, transcripts and grades are saved in `sessions/` next to the code. That folder is in
-`.gitignore`, so none of it is committed. The server listens on 127.0.0.1 only.
+Sessions, recordings, transcripts and grades are saved outside the repo, in a `talk rehersals` folder on your Desktop
+(one subfolder per session). Set `TALKTALK_DIR` to use another folder. The server also puts `talkTalk.html` there:
+double-click it to open the dashboard, or to see how to start talkTalk if it isn't running. The server listens on
+127.0.0.1 only.
 
 ## License
 

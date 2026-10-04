@@ -5,7 +5,8 @@ from urllib.parse import parse_qsl, urlsplit
 import whisper
 MODEL = whisper.load_model("small.en")  # loaded once; first load ~3 s
 D = os.path.dirname(os.path.abspath(__file__))
-S = f"{D}/sessions"  # sessions/<id>/session.json + sessions/<id>/takes/, gitignored
+# Personal data lives outside the repo: <id>/session.json + <id>/takes/. Override with TALKTALK_DIR.
+S = os.environ.get("TALKTALK_DIR") or os.path.expanduser("~/Desktop/talk rehersals")
 SID = re.compile(r"[A-Za-z0-9]+-\d+")
 CLAUDE = os.path.expanduser("~/.local/bin/claude")
 FILL = {"um", "uh", "er", "ah", "erm", "hmm", "mm"}
@@ -106,7 +107,6 @@ class H(http.server.SimpleHTTPRequestHandler):
                 return s.reply(json.load(open(f)) if os.path.exists(f) else {"pending": True})
         except Exception as e:
             return s.reply({"error": str(e)[:300]}, 400)
-        if path.startswith("/sessions"): return s.send_error(404)  # recordings stay off the static server
         super().do_GET()
     def do_POST(s):
         body = s.rfile.read(int(s.headers.get("Content-Length", 0)))
@@ -137,4 +137,11 @@ class H(http.server.SimpleHTTPRequestHandler):
             open(f"{T}/q{q}-{stamp}.json", "w").write(json.dumps(json.loads(body), indent=1, ensure_ascii=False))
             s.send_response(204); s.end_headers()
 
+os.makedirs(S, exist_ok=True)
+open(f"{S}/talkTalk.html", "w").write("""<!doctype html><meta charset="utf-8"><title>talkTalk</title>
+<body style="font:20px/1.5 system-ui;max-width:640px;margin:60px auto;padding:0 16px">
+<p id="m">Opening talkTalk…</p>
+<script>/* Opened from disk: jump to the live dashboard, or explain how to start it */
+fetch("http://127.0.0.1:8795/api/sessions",{mode:"no-cors"}).then(()=>location.href="http://127.0.0.1:8795/")
+ .catch(()=>document.getElementById("m").textContent="talkTalk isn't running. Start it with talkTalk.app or ./run.sh in the talkTalk folder, then reopen this page.")</script>""")
 http.server.ThreadingHTTPServer(("127.0.0.1", 8795), H).serve_forever()
