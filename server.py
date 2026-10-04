@@ -29,8 +29,13 @@ def metrics(wjson):
         "mid_sentence_pauses": mid}
 
 def transcribe(audio, wjson):
-    r = MODEL.transcribe(audio, language="en", word_timestamps=True, fp16=False,
-                         initial_prompt="Um, uh, so, er, you know, I mean... I- I think, like, hmm.")
+    run = lambda cond: MODEL.transcribe(audio, language="en", word_timestamps=True, fp16=False, condition_on_previous_text=cond,
+                                        initial_prompt="Um, uh, so, er, you know, I mean... I- I think, like, hmm.")
+    r = run(True)  # conditioning carries the filler prompt past the first 30 s, but can loop ("of- of- of- ...")
+    W = [w["word"].strip() for s in r["segments"] for w in s.get("words", [])]
+    if sum(w.endswith("-") for w in W) > max(5, 0.15 * len(W)):
+        # ponytail: cut-off share as loop detector (looped takes ~40%, real speech <5%); the retry undercounts fillers
+        r = run(False)
     json.dump(r, open(wjson, "w"))
     return metrics(wjson)
 
