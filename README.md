@@ -2,12 +2,48 @@
 
 Rehearse interview answers out loud and get every take measured and graded.
 
-You type in the questions you expect, plus the answer you'd like to give. talkTalk shows one question at a time in
-large type, records you answering it, and within about 15 seconds tells you how it went: your pace, your filler
-words, where you hesitated, a letter grade, and the single most useful thing to fix on the next take.
+## The problem: knowing it is not the same as saying it
 
-Everything runs on your own machine. Recordings are transcribed locally with Whisper; only the transcript and your
-written answer go to Claude for grading.
+Most people prepare for an interview, a podcast or a panel by writing. They draft their answers, tighten them, read
+them over until they feel ready. Then they answer out loud and it comes out differently: longer than planned, slower
+in some places and rushed in others, with "um" filling every gap where the next idea should be. Sentences start,
+stall and start again. The point they meant to land somehow gets lost halfway through.
+
+None of this shows on the page, and little of it is audible to the person speaking. The listener hears all of it.
+
+Speaking well in public comes down to two things:
+
+- **Coherence:** the answer goes somewhere. It responds to the question that was asked, makes its point, and ends
+  on a clear final line instead of trailing off.
+- **Fluency:** the answer comes out at an even pace, with pauses between thoughts rather than in the middle of
+  them, few fillers, and few false starts.
+
+Both are learned the same way: by saying the answer out loud, many times, and getting specific feedback after each
+attempt. That is rehearsal. Rehearsing alone gives you no feedback, though, and a coach or a patient friend won't sit
+through fifteen questions times ten takes.
+
+## What talkTalk does
+
+talkTalk is the feedback half of rehearsal. You give it the questions you expect and the answers you'd like to give.
+It shows one question at a time in large type, records you answering it, and within about 15 seconds tells you how
+it went: your pace, your fillers, where you hesitated, a letter grade with a note on fluency and one on content,
+and the single most useful thing to fix on the next take.
+
+## How to prepare with it
+
+1. **Write your answers as notes, not scripts.** The written answer tells talkTalk what you meant to say, so it can
+   check whether you said it. You are not meant to recite it; a memorized answer sounds memorized.
+2. **Answer without looking.** Read the question, press Space, and talk. Peek at your written answer (press A) only
+   after the take.
+3. **Fix one thing per take.** Each grade ends with one recommendation. Apply that, and only that, on the next take.
+4. **Repeat until it holds.** Move on when the grade stays steady and the answer fits the targets talkTalk grades
+   against: 45 seconds to 2 minutes, 130 to 160 words per minute, under 5 fillers per 100 words, pauses only between
+   sentences, and a clear final line.
+5. **Come back another day.** Every session is kept and searchable on the dashboard, so you can run an interview's
+   questions again closer to the date. Every take (recording, transcript, grade) is saved in the session's folder.
+
+Recordings and transcription stay on your machine (Whisper runs locally). The transcript and your written answer go
+to Claude for grading, and Chrome's live transcript uses Google's speech recognition.
 
 ## How it works
 
@@ -15,7 +51,8 @@ written answer go to Claude for grading.
    questions. A written answer for each question is optional; when present, the grade checks your spoken answer
    against it. To skip the typing, drop your questionnaire (.txt, .md, .docx, .rtf, .odt, .html…) into the data
    folder and pick it in the form: every line ending in `?` becomes a question, and the lines after it its written
-   answer. Check the rows before you create the session; the file then moves into the session's folder. Each session gets an ID made of the topic's first word and a counter, such as `Product-1`, `Product-2`.
+   answer. Check the rows before you create the session; the file then moves into the session's folder. Each
+   session gets an ID made of the topic's first word and a counter, such as `Product-1`, `Product-2`.
 2. **Rehearse.** Open the session and answer each question aloud. Chrome shows a live transcript while you talk.
 3. **Read the feedback.** When you stop, Whisper transcribes the recording with word timings and fillers kept
    (about 5 seconds), and talkTalk measures:
