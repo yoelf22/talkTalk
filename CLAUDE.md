@@ -23,6 +23,8 @@ This repo is public. Interview content (questions, written answers, recordings, 
 
 Data: `<data dir>/<id>/session.json` = `{id, topic, name, date, questions: [{q, a}]}`; takes in `<data dir>/<id>/takes/`. On every start the server (re)writes `<data dir>/talkTalk.html`, a file:// page that redirects to the live dashboard or says how to start the server. The ID is the topic's first word (alphanumerics only) + `-` + (highest existing counter for that word + 1). Every endpoint validates the ID against `[A-Za-z0-9]+-\d+`.
 
+Questionnaire import: files in the data dir root (`GET /api/files`) are parsed by `parse()` (`GET /api/parse?f=`; macOS `textutil` for anything but .txt/.md): a line ending in `?` starts a question, following lines are its answer, bullets/numbering/`Q:`/`A:`/markdown emphasis stripped. On create, the chosen `source` file moves into `<id>/`.
+
 Endpoints: `GET /api/sessions` (list, with take counts), `POST /api/sessions` (create), `GET /api/session?s=`, `POST /audio?s=&q=`, `GET /grade?s=&id=`, `POST /take?s=&q=`.
 
 Each take has **two independent pipelines**:

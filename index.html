@@ -11,14 +11,14 @@ body{background:var(--bg);color:var(--fg);font:19px/1.5 var(--body);margin:0}
 .wrap{max-width:900px;margin:0 auto;padding:24px 16px 60px;display:grid;gap:20px}
 h1{font:600 40px/1.2 var(--q);margin:0}h2{font:600 26px/1.3 var(--q);margin:0 0 12px}
 .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-input,textarea{font:inherit;color:inherit;background:var(--card);border:2px solid var(--line);border-radius:10px;padding:10px 14px;box-sizing:border-box;width:100%}
+input,textarea,select{font:inherit;color:inherit;background:var(--card);border:2px solid var(--line);border-radius:10px;padding:10px 14px;box-sizing:border-box;width:100%}
 textarea{min-height:5em;resize:vertical}
 input:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--air);outline-offset:2px}
 button{font:700 18px var(--body);padding:10px 20px;border-radius:10px;border:2px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
 .primary{background:var(--air);border-color:var(--air);color:#fff}
 .box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;min-width:0}
 label{display:grid;gap:4px;font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);flex:1;min-width:180px}
-label input,label textarea{text-transform:none;letter-spacing:0;color:var(--fg);font-size:19px}
+label input,label textarea,label select{text-transform:none;letter-spacing:0;color:var(--fg);font-size:19px}
 .mute{color:var(--mute);font-size:16px}
 .sess{display:block;text-decoration:none;color:inherit}
 .sess:hover{border-color:var(--air)}
@@ -37,6 +37,8 @@ label input,label textarea{text-transform:none;letter-spacing:0;color:var(--fg);
    <label style="flex:0 1 200px">Date<input id="date" type="date" required></label>
   </div>
   <p class="mute">Session ID: <b id="sid">—</b></p>
+  <label>Import questions from a file<select id="src"></select></label>
+  <p class="mute" id="srchint"></p>
   <div id="qs"></div>
   <div class="row" style="margin-top:14px"><button type="button" id="addq">+ Add question</button><span style="flex:1"></span>
    <button type="button" id="cancel">Cancel</button><button class="primary" type="submit">Create and rehearse</button></div>
@@ -61,20 +63,26 @@ function render(){
 fetch("/api/sessions").then(r=>r.json()).then(d=>{S=d;render()});
 $("search").oninput=render;
 
-function addQ(){
+function addQ(x={q:"",a:""},focus=true){
  const n=$("qs").children.length+1,rm=el("button",{type:"button",textContent:"Remove"});
- const row=el("div",{className:"qrow"},el("label",{},`Question ${n}`,el("textarea",{className:"q",required:n===1,rows:2})),
-  el("label",{},"Your written answer (optional)",el("textarea",{className:"a"})),el("div",{},rm));
+ const row=el("div",{className:"qrow"},el("label",{},`Question ${n}`,el("textarea",{className:"q",required:n===1,rows:2,value:x.q})),
+  el("label",{},"Your written answer (optional)",el("textarea",{className:"a",value:x.a})),el("div",{},rm));
  rm.onclick=()=>{row.remove();[...$("qs").children].forEach((r,k)=>r.querySelector("label").firstChild.textContent=`Question ${k+1}`)};
- $("qs").append(row);row.querySelector("textarea").focus();
+ $("qs").append(row);if(focus)row.querySelector("textarea").focus();
 }
-$("new").onclick=()=>{$("form").hidden=false;$("date").value||=new Date().toISOString().slice(0,10);if(!$("qs").children.length)addQ();$("topic").focus()};
+function loadFiles(){fetch("/api/files").then(r=>r.json()).then(d=>{
+ $("src").replaceChildren(el("option",{value:"",textContent:d.files.length?"Choose a file…":"No files in the folder"}),...d.files.map(f=>el("option",{value:f,textContent:f})));
+ $("srchint").textContent=`Put a questionnaire (.txt, .md, .docx, .rtf, …) in ${d.dir} and it appears here. Each question must be on its own line and end with "?"; the lines after it become the written answer. The file moves into the session's folder when you create it.`})}
+$("src").onchange=()=>{const f=$("src").value;if(!f)return;$("ferr").textContent="";
+ fetch("/api/parse?f="+encodeURIComponent(f)).then(r=>r.json()).then(d=>{if(d.error){$("ferr").textContent=d.error;return}
+  $("qs").replaceChildren();d.forEach(x=>addQ(x,false));if(!$("topic").value)$("topic").focus()})};
+$("new").onclick=()=>{$("form").hidden=false;loadFiles();$("date").value||=new Date().toISOString().slice(0,10);if(!$("qs").children.length)addQ();$("topic").focus()};
 $("cancel").onclick=()=>$("form").hidden=true;
 $("addq").onclick=addQ;
 $("topic").oninput=()=>$("sid").textContent=$("topic").value.trim()?nextId($("topic").value):"—";
 $("form").onsubmit=e=>{e.preventDefault();$("ferr").textContent="";
  const questions=[...$("qs").children].map(r=>({q:r.querySelector(".q").value,a:r.querySelector(".a").value})).filter(x=>x.q.trim());
- fetch("/api/sessions",{method:"POST",body:JSON.stringify({topic:$("topic").value,name:$("name").value,date:$("date").value,questions})})
+ fetch("/api/sessions",{method:"POST",body:JSON.stringify({topic:$("topic").value,name:$("name").value,date:$("date").value,questions,source:$("src").value})})
   .then(r=>r.json()).then(d=>d.error?$("ferr").textContent=d.error:location.href="rehearse.html?s="+encodeURIComponent(d.id))
   .catch(()=>$("ferr").textContent="Couldn't reach the server.")};
 </script></body></html>

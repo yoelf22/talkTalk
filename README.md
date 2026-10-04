@@ -13,7 +13,9 @@ written answer go to Claude for grading.
 
 1. **Create a session.** On the dashboard, click **+ New session** and fill in the topic, a name, the date, and your
    questions. A written answer for each question is optional; when present, the grade checks your spoken answer
-   against it. Each session gets an ID made of the topic's first word and a counter, such as `Product-1`, `Product-2`.
+   against it. To skip the typing, drop your questionnaire (.txt, .md, .docx, .rtf, .odt, .html…) into the data
+   folder and pick it in the form: every line ending in `?` becomes a question, and the lines after it its written
+   answer. Check the rows before you create the session; the file then moves into the session's folder. Each session gets an ID made of the topic's first word and a counter, such as `Product-1`, `Product-2`.
 2. **Rehearse.** Open the session and answer each question aloud. Chrome shows a live transcript while you talk.
 3. **Read the feedback.** When you stop, Whisper transcribes the recording with word timings and fillers kept
    (about 5 seconds), and talkTalk measures:

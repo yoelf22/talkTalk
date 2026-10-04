@@ -77,16 +77,38 @@ def sessions():
         out.append(x)
     return sorted(out, key=lambda x: x["date"], reverse=True)
 
+def files():
+    """Questionnaire files dropped in the data folder root, waiting to be imported."""
+    return sorted(f for f in os.listdir(S) if os.path.isfile(f"{S}/{f}") and not f.startswith(".") and f != "talkTalk.html")
+
+def parse(f):
+    """A line ending in '?' starts a question; the lines after it, up to the next question, are the written answer."""
+    if f not in files(): raise ValueError("no such file in the folder")
+    p = f"{S}/{f}"
+    txt = open(p, errors="replace").read() if f.lower().endswith((".txt", ".md", ".markdown")) else \
+        subprocess.run(["textutil", "-convert", "txt", "-stdout", p], capture_output=True, text=True, check=True).stdout  # docx, doc, rtf, odt, html...
+    qs, cur = [], None
+    for line in txt.splitlines():
+        t = re.sub(r"\*\*|__|`", "", line)  # markdown emphasis
+        t = re.sub(r"^\s*(?:[-*•#>]+\s*)?(?:\(?\d+[.)]|Q\d*[:.)]|A[:.)])?\s*", "", t).strip()  # bullets, numbering, Q:/A:
+        if t.endswith("?"): cur = {"q": t, "a": ""}; qs.append(cur)
+        elif cur is not None and t: cur["a"] += t + "\n"
+    if not qs: raise ValueError("no questions found: each question must be on its own line and end with '?'")
+    return [{"q": x["q"], "a": x["a"].strip()} for x in qs]
+
 def create(t):
     topic, name, date = (str(t.get(k, "")).strip() for k in ("topic", "name", "date"))
     qs = [{"q": str(x.get("q", "")).strip(), "a": str(x.get("a", "")).strip()} for x in t.get("questions", [])]
     qs = [x for x in qs if x["q"]]
+    src = t.get("source") or None
+    if src and src not in files(): raise ValueError("questionnaire file is no longer in the folder")
     if not (topic and name and date and qs): raise ValueError("topic, name, date and at least one question are required")
     word = re.sub(r"[^A-Za-z0-9]", "", topic.split()[0]) or "Session"
     n = 1 + max([int(x.rsplit("-", 1)[1]) for x in (os.listdir(S) if os.path.isdir(S) else []) if x.startswith(word + "-") and SID.fullmatch(x)], default=0)
     sid = f"{word}-{n}"
     os.makedirs(f"{S}/{sid}/takes")
-    sess = {"id": sid, "topic": topic, "name": name, "date": date, "questions": qs}
+    sess = {"id": sid, "topic": topic, "name": name, "date": date, "questions": qs, "source": src}
+    if src: os.rename(f"{S}/{src}", f"{S}/{sid}/{src}")  # the questionnaire moves in with its session
     json.dump(sess, open(f"{S}/{sid}/session.json", "w"), indent=1, ensure_ascii=False)
     return sess
 
@@ -101,6 +123,8 @@ class H(http.server.SimpleHTTPRequestHandler):
         try:
             if path == "/api/sessions": return s.reply(sessions())
             if path == "/api/session": return s.reply(load(a.get("s")))
+            if path == "/api/files": return s.reply({"dir": S, "files": files()})
+            if path == "/api/parse": return s.reply(parse(a.get("f", "")))
             if path == "/grade":
                 load(a.get("s"))
                 f = f"{S}/{a['s']}/takes/{os.path.basename(a.get('id', ''))}.grade.json"
