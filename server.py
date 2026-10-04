@@ -102,19 +102,23 @@ def details(t):
     if not (topic and name and date): raise ValueError("topic, name and date are required")
     return {"topic": topic, "name": name, "date": date, "context": context}
 
+def questions(t):
+    qs = [{"q": str(x.get("q", "")).strip(), "a": str(x.get("a", "")).strip()} for x in t.get("questions", [])]
+    qs = [x for x in qs if x["q"]]
+    if not qs: raise ValueError("add at least one question")
+    return qs
+
 def update(sid, t):
-    """Edits topic, name, date and context. The ID and the questions stay as they are."""
-    sess = {**load(sid), **details(t)}
+    """Edits topic, name, date, context and the questions. The ID stays as it is."""
+    sess = {**load(sid), **details(t), "questions": questions(t)}
     json.dump(sess, open(f"{S}/{sid}/session.json", "w"), indent=1, ensure_ascii=False)
     return sess
 
 def create(t):
     d = details(t)
-    qs = [{"q": str(x.get("q", "")).strip(), "a": str(x.get("a", "")).strip()} for x in t.get("questions", [])]
-    qs = [x for x in qs if x["q"]]
+    qs = questions(t)
     src = t.get("source") or None
     if src and src not in files(): raise ValueError("questionnaire file is no longer in the folder")
-    if not qs: raise ValueError("add at least one question")
     word = re.sub(r"[^A-Za-z0-9]", "", d["topic"].split()[0]) or "Session"
     n = 1 + max([int(m[1]) for x in (os.listdir(S) if os.path.isdir(S) else []) if (m := re.fullmatch(re.escape(word) + r"-(\d+)", x))], default=0)
     sid = f"{word}-{n}"
@@ -167,7 +171,7 @@ class H(http.server.SimpleHTTPRequestHandler):
             def bg():
                 try: r = grade(text, m, q, sess)
                 except Exception as e: r = {"error": str(e)[:300]}
-                json.dump({**r, "metrics": m, "transcript": text}, open(base + ".grade.json", "w"), indent=1, ensure_ascii=False)
+                json.dump({**r, "question": sess["questions"][q - 1]["q"], "metrics": m, "transcript": text}, open(base + ".grade.json", "w"), indent=1, ensure_ascii=False)
             threading.Thread(target=bg, daemon=True).start()
             s.reply({"id": f"q{q}-{stamp}", "metrics": m, "transcript": text})
         else:

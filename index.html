@@ -42,8 +42,9 @@ label input,label textarea,label select{text-transform:none;letter-spacing:0;col
   <div id="qpart">
    <label>Import questions from a file<select id="src"></select></label>
    <p class="mute" id="srchint"></p>
-   <div id="qs"></div>
   </div>
+  <p class="mute" id="renum" hidden>Takes are filed by question number, so removing or adding a question in the middle shifts the numbers for earlier takes. Editing a question's text in place is safe.</p>
+  <div id="qs"></div>
   <div class="row" style="margin-top:14px"><button type="button" id="addq">+ Add question</button><span style="flex:1"></span>
    <button type="button" id="cancel">Cancel</button><button class="primary" type="submit" id="submit">Create and rehearse</button></div>
   <p class="err" id="ferr"></p>
@@ -82,19 +83,19 @@ function loadFiles(){fetch("/api/files").then(r=>r.json()).then(d=>{
 $("src").onchange=()=>{const f=$("src").value;if(!f)return;$("ferr").textContent="";
  fetch("/api/parse?f="+encodeURIComponent(f)).then(r=>r.json()).then(d=>{if(d.error){$("ferr").textContent=d.error;return}
   $("qs").replaceChildren();d.forEach(x=>addQ(x,false));if(!$("topic").value)$("topic").focus()})};
-function mode(sess){editing=sess;$("form").noValidate=!!sess; /* hidden question rows must not block a save */$("ftitle").textContent=sess?"Edit session":"New session";$("submit").textContent=sess?"Save":"Create and rehearse";
- $("qpart").hidden=$("addq").hidden=!!sess;$("ferr").textContent="";$("form").hidden=false;$("form").scrollIntoView()}
-function edit(x){mode(x);for(const k of ["topic","name","date","context"])$(k).value=x[k]||"";$("sid").textContent=x.id+" (stays the same)";$("topic").focus()}
-$("new").onclick=()=>{if(editing)for(const k of ["topic","name","date","context"])$(k).value="";mode(null);$("sid").textContent="—";loadFiles();$("date").value||=new Date().toISOString().slice(0,10);if(!$("qs").children.length)addQ();$("topic").focus()};
-$("cancel").onclick=()=>{$("form").hidden=true;if(editing){editing=null;for(const k of ["topic","name","date","context"])$(k).value=""}};
+function mode(sess){editing=sess;$("ftitle").textContent=sess?"Edit session":"New session";$("submit").textContent=sess?"Save":"Create and rehearse";
+ $("qpart").hidden=!!sess;$("renum").hidden=!sess;$("ferr").textContent="";$("form").hidden=false;$("form").scrollIntoView()}
+function edit(x){mode(x);for(const k of ["topic","name","date","context"])$(k).value=x[k]||"";$("qs").replaceChildren();x.questions.forEach(q=>addQ(q,false));$("sid").textContent=x.id+" (stays the same)";$("topic").focus()}
+$("new").onclick=()=>{if(editing){for(const k of ["topic","name","date","context"])$(k).value="";$("qs").replaceChildren()}mode(null);$("sid").textContent="—";loadFiles();$("date").value||=new Date().toISOString().slice(0,10);if(!$("qs").children.length)addQ();$("topic").focus()};
+$("cancel").onclick=()=>{$("form").hidden=true;if(editing){editing=null;for(const k of ["topic","name","date","context"])$(k).value="";$("qs").replaceChildren()}};
 $("addq").onclick=addQ;
 $("topic").oninput=()=>editing||($("sid").textContent=$("topic").value.trim()?nextId($("topic").value):"—");
 $("form").onsubmit=e=>{e.preventDefault();$("ferr").textContent="";
  const det={topic:$("topic").value,name:$("name").value,date:$("date").value,context:$("context").value};
- if(editing)return fetch("/api/session?s="+encodeURIComponent(editing.id),{method:"POST",body:JSON.stringify(det)}).then(r=>r.json())
-  .then(d=>{if(d.error)return $("ferr").textContent=d.error;Object.assign(editing,d);editing=null;$("form").hidden=true;render()})
-  .catch(()=>$("ferr").textContent="Couldn't reach the server.");
  const questions=[...$("qs").children].map(r=>({q:r.querySelector(".q").value,a:r.querySelector(".a").value})).filter(x=>x.q.trim());
+ if(editing)return fetch("/api/session?s="+encodeURIComponent(editing.id),{method:"POST",body:JSON.stringify({...det,questions})}).then(r=>r.json())
+  .then(d=>{if(d.error)return $("ferr").textContent=d.error;Object.assign(editing,d);editing=null;$("form").hidden=true;$("qs").replaceChildren();render()})
+  .catch(()=>$("ferr").textContent="Couldn't reach the server.");
  fetch("/api/sessions",{method:"POST",body:JSON.stringify({...det,questions,source:$("src").value})})
   .then(r=>r.json()).then(d=>d.error?$("ferr").textContent=d.error:location.href="rehearse.html?s="+encodeURIComponent(d.id))
   .catch(()=>$("ferr").textContent="Couldn't reach the server.")};

@@ -25,7 +25,7 @@ Data: `<data dir>/<id>/session.json` = `{id, topic, name, date, context, questio
 
 Questionnaire import: files in the data dir root (`GET /api/files`) are parsed by `parse()` (`GET /api/parse?f=`; macOS `textutil` for anything but .txt/.md): a line ending in `?` starts a question, following lines are its answer, bullets/numbering/`Q:`/`A:`/markdown emphasis stripped. On create, the chosen `source` file moves into `<id>/`.
 
-Endpoints: `GET /api/sessions` (list, with take counts), `POST /api/sessions` (create), `GET /api/session?s=`, `POST /api/session?s=` (edit topic/name/date/context; ID and questions never change), `POST /audio?s=&q=`, `GET /grade?s=&id=`, `POST /take?s=&q=`.
+Endpoints: `GET /api/sessions` (list, with take counts), `POST /api/sessions` (create), `GET /api/session?s=`, `POST /api/session?s=` (edit topic/name/date/context and the questions; the ID never changes. Takes are filed by question number, so inserting or removing a question shifts which question older takes belong to; grade files written since this change also store the question text), `POST /audio?s=&q=`, `GET /grade?s=&id=`, `POST /take?s=&q=`.
 
 Each take has **two independent pipelines**:
 
