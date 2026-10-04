@@ -74,7 +74,9 @@ function stop(){
   const qn=i+1,add=(k,v)=>{const p=document.createElement("p");const b=document.createElement("b");b.textContent=k;p.append(b," ",v);$("gradetxt").append(p)};
   fetch(`/audio?s=${SID}&q=${qn}`,{method:"POST",body:blob}).then(r=>r.json()).then(t=>{if(i+1!==qn)return;
    if(t.error){$("grade").textContent="?";$("gradetxt").textContent="Transcription failed: "+t.error;return}
-   $("tx").textContent=t.transcript;stats(t.metrics);$("gradetxt").textContent="Grading…";
+   $("tx").textContent=t.transcript||"(nothing heard)";stats(t.metrics);
+   if(t.skipped){$("grade").textContent="–";$("gradetxt").textContent=`Not graded: under 5 words (${t.metrics.words||0} heard).`;return}
+   $("gradetxt").textContent="Grading…";
    const poll=()=>fetch(`/grade?s=${SID}&id=${t.id}`).then(r=>r.json()).then(g=>{if(i+1!==qn)return;if(g.pending)return setTimeout(poll,1000);
     $("gradetxt").innerHTML="";if(g.error){$("grade").textContent="?";add("Grading failed:",g.error);return}
     $("grade").textContent=g.grade;add("Next take:",g.recommendation);add("Fluency:",g.fluency);add("Coherence:",g.coherence)});
@@ -84,7 +86,7 @@ function stop(){
 // The numbers come from Whisper's transcript, the same one the grader reads (Chrome's live transcript drops fillers)
 function stats(m){
  const tile=(v,label,warn)=>`<div class="stat"><b class="${warn?"warn":"good"}">${v}</b><span>${label}</span></div>`,fw=m.filler_words||{};
- $("stats").innerHTML=!m.seconds?tile(0,"words heard",true):
+ $("stats").innerHTML=(m.words||0)<5?tile(m.words||0,"words heard (5 needed for a grade)",true):
   tile(fmt(m.seconds),"length (aim 0:45 to 2:00)",m.seconds<45||m.seconds>120)+tile(m.wpm,"words per minute (aim 130 to 160)",m.wpm<130||m.wpm>160)+
   tile(m.fillers,`fillers, ${m.fillers_per_100w} per 100 words (aim under 5)`,m.fillers_per_100w>=5)+tile(m.mid_sentence_pauses,"pauses mid-sentence",m.mid_sentence_pauses>0)+
   tile(m.pauses_0_7s,"pauses over 0.7 s",m.pauses_0_7s>m.words/12)+tile(m.pauses_2s,"pauses over 2 s",m.pauses_2s>0)+tile(m.cutoffs,"cut-off words",m.cutoffs>1);

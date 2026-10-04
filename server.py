@@ -172,6 +172,8 @@ class H(http.server.SimpleHTTPRequestHandler):
             text, m = transcribe(base + ".webm", f"{T}/w/q{q}-{stamp}.json")
         except Exception as e:
             return s.reply({"error": str(e)[:300]}, 500)
+        if m.get("words", 0) < 5:  # nothing to coach on; the recording and transcript are still kept
+            return s.reply({"id": f"q{q}-{stamp}", "metrics": m, "transcript": text, "skipped": True})
         def bg():
             try: r = grade(text, m)
             except Exception as e: r = {"error": str(e)[:300]}

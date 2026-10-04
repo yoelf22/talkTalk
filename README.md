@@ -63,7 +63,7 @@ Claude for grading, and Chrome's live transcript uses Google's speech recognitio
    - pauses over 0.7 s and over 2 s, and pauses in the middle of a sentence
    - cut-off words ("I- I think")
 
-   Claude (Sonnet, through the Claude Code CLI) then grades the take from A to D, with a note on fluency, a note on
+   Takes under 5 words are measured but not graded. Otherwise Claude (Sonnet, through the Claude Code CLI) grades the take from A to D, with a note on fluency, a note on
    coherence, and one concrete fix for the next take.
 4. **Come back later.** The dashboard lists every session and can search them by topic, name or ID, so you
    can return to an earlier interview and rehearse it again. **Edit** on a session changes its topic, name, date,
