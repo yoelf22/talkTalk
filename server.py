@@ -7,7 +7,7 @@ MODEL = whisper.load_model("small.en")  # loaded once; first load ~3 s
 D = os.path.dirname(os.path.abspath(__file__))
 # Personal data lives outside the repo: <id>/session.json + <id>/takes/. Override with TALKTALK_DIR.
 S = os.environ.get("TALKTALK_DIR") or os.path.expanduser("~/Desktop/talk rehersals")
-SID = re.compile(r"[A-Za-z0-9]+-\d+")
+SID = re.compile(r"[A-Za-z0-9][\w .'()-]*")  # session folder name: new ones are Word-N, but a folder may be renamed by hand
 CLAUDE = os.path.expanduser("~/.local/bin/claude")
 FILL = {"um", "uh", "er", "ah", "erm", "hmm", "mm"}
 
@@ -116,7 +116,7 @@ def create(t):
     if src and src not in files(): raise ValueError("questionnaire file is no longer in the folder")
     if not qs: raise ValueError("add at least one question")
     word = re.sub(r"[^A-Za-z0-9]", "", d["topic"].split()[0]) or "Session"
-    n = 1 + max([int(x.rsplit("-", 1)[1]) for x in (os.listdir(S) if os.path.isdir(S) else []) if x.startswith(word + "-") and SID.fullmatch(x)], default=0)
+    n = 1 + max([int(m[1]) for x in (os.listdir(S) if os.path.isdir(S) else []) if (m := re.fullmatch(re.escape(word) + r"-(\d+)", x))], default=0)
     sid = f"{word}-{n}"
     os.makedirs(f"{S}/{sid}/takes")
     sess = {"id": sid, **d, "questions": qs, "source": src}
