@@ -1,0 +1,135 @@
+# Serves the rehearsal page on localhost (secure context for mic + speech), saves takes,
+# keeps interview sessions (questions typed in by the user), and grades each take: Whisper (local, word timestamps) -> metrics -> Claude grade + tip.
+import http.server, json, os, re, subprocess, threading, time
+from urllib.parse import parse_qsl, urlsplit
+import whisper
+MODEL = whisper.load_model("small.en")  # loaded once; first load ~3 s
+D = os.path.dirname(os.path.abspath(__file__))
+S = f"{D}/sessions"  # sessions/<id>/session.json + sessions/<id>/takes/, gitignored
+SID = re.compile(r"[A-Za-z0-9]+-\d+")
+CLAUDE = os.path.expanduser("~/.local/bin/claude")
+FILL = {"um", "uh", "er", "ah", "erm", "hmm", "mm"}
+
+def metrics(wjson):
+    d = json.load(open(wjson))
+    W = [w for s in d["segments"] for w in s.get("words", [])]
+    if not W:
+        return d["text"].strip(), {"words": 0}
+    toks = [re.sub(r"[^a-z'-]", "", w["word"].lower()) for w in W]
+    dur = W[-1]["end"] - W[0]["start"]
+    words = [t for t in toks if t and t not in FILL]
+    gaps = [W[k + 1]["start"] - W[k]["end"] for k in range(len(W) - 1)]
+    mid = sum(1 for k, g in enumerate(gaps) if g >= 0.7 and not re.search(r"[.?!,]$", W[k]["word"].strip()))
+    fill = sum(t in FILL for t in toks)
+    return d["text"].strip(), {
+        "seconds": round(dur), "words": len(words), "wpm": round(len(words) / (dur / 60)),
+        "fillers": fill, "fillers_per_100w": round(fill / max(1, len(words)) * 100, 1),
+        "cutoffs": sum(1 for w in W if w["word"].strip().endswith("-")),
+        "pauses_0_7s": sum(g >= 0.7 for g in gaps), "pauses_2s": sum(g >= 2 for g in gaps),
+        "mid_sentence_pauses": mid}
+
+def transcribe(audio, wjson):
+    r = MODEL.transcribe(audio, language="en", word_timestamps=True, fp16=False,
+                         initial_prompt="Um, uh, so, er, you know, I mean... I- I think, like, hmm.")
+    json.dump(r, open(wjson, "w"))
+    return metrics(wjson)
+
+def grade(text, m, q, sess):
+    item = sess["questions"][q - 1]
+    prompt = f"""You are a speaking coach. Someone is rehearsing answers for an interview.
+Session: {sess['topic']} / {sess['name']} / {sess['date']}. Grade this spoken answer and give one short recommendation.
+
+Question: {item['q']}
+Their prepared written answer (reference for content, not a script to recite; may be empty):
+{item['a'] or '(none)'}
+
+Whisper transcript of what he said (fillers kept):
+{text}
+
+Measured: {json.dumps(m)}
+Targets: 130-160 wpm; under 5 fillers per 100 words; 45-120 seconds; pauses only between sentences; the answer
+must actually answer the question and land a clear final line.
+
+Return ONLY JSON: {{"grade": "A|A-|B+|B|B-|C+|C|C-|D", "fluency": "<=12 words", "content": "<=12 words",
+"recommendation": "the single most useful fix for the next take, <=35 words, concrete, no preamble"}}"""
+    out = subprocess.run([CLAUDE, "-p", "--model", "sonnet", "--tools", ""], input=prompt, capture_output=True,
+                         text=True, env={k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}, timeout=180).stdout
+    g = json.loads(re.search(r"\{.*\}", out, re.S).group(0))
+    return g
+
+def load(sid):
+    if not SID.fullmatch(sid or ""): raise ValueError("bad session id")
+    return json.load(open(f"{S}/{sid}/session.json"))
+
+def sessions():
+    out = []
+    for sid in os.listdir(S) if os.path.isdir(S) else []:
+        try: x = load(sid)
+        except Exception: continue
+        tk = f"{S}/{sid}/takes"
+        x["takes"] = sum(f.endswith(".webm") for f in os.listdir(tk)) if os.path.isdir(tk) else 0
+        out.append(x)
+    return sorted(out, key=lambda x: x["date"], reverse=True)
+
+def create(t):
+    topic, name, date = (str(t.get(k, "")).strip() for k in ("topic", "name", "date"))
+    qs = [{"q": str(x.get("q", "")).strip(), "a": str(x.get("a", "")).strip()} for x in t.get("questions", [])]
+    qs = [x for x in qs if x["q"]]
+    if not (topic and name and date and qs): raise ValueError("topic, name, date and at least one question are required")
+    word = re.sub(r"[^A-Za-z0-9]", "", topic.split()[0]) or "Session"
+    n = 1 + max([int(x.rsplit("-", 1)[1]) for x in (os.listdir(S) if os.path.isdir(S) else []) if x.startswith(word + "-") and SID.fullmatch(x)], default=0)
+    sid = f"{word}-{n}"
+    os.makedirs(f"{S}/{sid}/takes")
+    sess = {"id": sid, "topic": topic, "name": name, "date": date, "questions": qs}
+    json.dump(sess, open(f"{S}/{sid}/session.json", "w"), indent=1, ensure_ascii=False)
+    return sess
+
+class H(http.server.SimpleHTTPRequestHandler):
+    def __init__(s, *a, **k): super().__init__(*a, directory=D, **k)
+    def reply(s, obj, code=200):
+        b = json.dumps(obj).encode(); s.send_response(code)
+        s.send_header("Content-Type", "application/json"); s.send_header("Content-Length", str(len(b))); s.end_headers(); s.wfile.write(b)
+    def args(s): return dict(parse_qsl(urlsplit(s.path).query))
+    def do_GET(s):
+        path, a = urlsplit(s.path).path, s.args()
+        try:
+            if path == "/api/sessions": return s.reply(sessions())
+            if path == "/api/session": return s.reply(load(a.get("s")))
+            if path == "/grade":
+                load(a.get("s"))
+                f = f"{S}/{a['s']}/takes/{os.path.basename(a.get('id', ''))}.grade.json"
+                return s.reply(json.load(open(f)) if os.path.exists(f) else {"pending": True})
+        except Exception as e:
+            return s.reply({"error": str(e)[:300]}, 400)
+        if path.startswith("/sessions"): return s.send_error(404)  # recordings stay off the static server
+        super().do_GET()
+    def do_POST(s):
+        body = s.rfile.read(int(s.headers.get("Content-Length", 0)))
+        path, a = urlsplit(s.path).path, s.args()
+        stamp = time.strftime("%Y%m%d-%H%M%S")
+        try:
+            if path == "/api/sessions": return s.reply(create(json.loads(body)))
+            sess, q = load(a.get("s")), int(a.get("q", 0))
+            if not 1 <= q <= len(sess["questions"]): raise ValueError("bad question number")
+        except Exception as e:
+            return s.reply({"error": str(e)[:300]}, 400)
+        T = f"{S}/{sess['id']}/takes"
+        if path == "/audio":
+            base = f"{T}/q{q}-{stamp}"
+            open(base + ".webm", "wb").write(body)
+            try:
+                os.makedirs(f"{T}/w", exist_ok=True)
+                text, m = transcribe(base + ".webm", f"{T}/w/q{q}-{stamp}.json")
+            except Exception as e:
+                return s.reply({"error": str(e)[:300]}, 500)
+            def bg():
+                try: r = grade(text, m, q, sess)
+                except Exception as e: r = {"error": str(e)[:300]}
+                json.dump({**r, "metrics": m, "transcript": text}, open(base + ".grade.json", "w"), indent=1, ensure_ascii=False)
+            threading.Thread(target=bg, daemon=True).start()
+            s.reply({"id": f"q{q}-{stamp}", "metrics": m, "transcript": text})
+        else:
+            open(f"{T}/q{q}-{stamp}.json", "w").write(json.dumps(json.loads(body), indent=1, ensure_ascii=False))
+            s.send_response(204); s.end_headers()
+
+http.server.ThreadingHTTPServer(("127.0.0.1", 8795), H).serve_forever()
