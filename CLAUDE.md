@@ -36,4 +36,4 @@ Details that matter when editing:
 - `grade()` strips `ANTHROPIC_API_KEY` from the subprocess env so the CLI uses the user's subscription login, not API billing. Keep that.
 - Claude's output is parsed by regex-grabbing the first `{...}` block; the JSON shape (`grade`, `fluency`, `coherence`, `recommendation`) is what `rehearse.html` renders.
 - Question numbers are 1-based in URLs and filenames. The page drops stale responses if the user has moved to another question (`if(i+1!==qn)return`).
-- The grader judges only the transcript (coherence, fluency) plus the question to check it stayed on topic. The user explicitly does not want written answers, session context or any outside facts fed to it: it once kept pushing a "fact" from the notes that the user never said. Don't add them back.
+- The grader gets only the transcript and measurements, and judges only how it was said (coherence, fluency), never what it contains: not the question, not whether it is specific or vague. The user explicitly does not want the question, notes, session context or any outside facts fed to it: it once kept pushing a "fact" from the notes that the user never said. Don't add them back.

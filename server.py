@@ -40,17 +40,16 @@ def transcribe(audio, wjson):
     json.dump(r, open(wjson, "w"))
     return metrics(wjson)
 
-def grade(text, m, q, sess):
-    prompt = f"""You are a speaking coach. Someone is rehearsing an interview answer out loud. Judge ONLY what they
-actually said and how they said it. You know nothing about their subject beyond this transcript, so never add,
-correct or suggest facts, examples, dates or claims they did not say themselves.
+def grade(text, m):
+    prompt = f"""You are a speaking coach. Someone is rehearsing an interview answer out loud. Judge ONLY how they said
+what they said. Do not judge what the answer contains: not whether it answers a question, not whether it is specific,
+detailed, vague or complete, not whether its claims are right. Never ask for a moment, an example, a fact, a date or
+more detail, and never add or suggest content of your own. Don't call anything vague, generic, specific or detailed.
 
 Judge two things:
-- Coherence: does what they said hold together? One clear thread, ideas in a sensible order, no detours or
-  restarts, and a clear final line instead of trailing off.
+- Coherence: does what they said hold together as spoken? One thread, sentences that follow from each other, no
+  detours, restarts or abandoned sentences, and a clear final line instead of trailing off.
 - Fluency: even pace, pauses between sentences rather than mid-sentence, few fillers, few cut-off words.
-
-The question (only to tell whether they stayed on it): {sess["questions"][q - 1]["q"]}
 
 Whisper transcript of what they said (fillers kept):
 {text}
@@ -58,8 +57,8 @@ Whisper transcript of what they said (fillers kept):
 Measured: {json.dumps(m)}
 Targets: 130-160 wpm; under 5 fillers per 100 words; 45-120 seconds; pauses only between sentences.
 
-The recommendation must work with their own words: quote or point to a specific part of what they said (where the
-thread broke, which sentence to cut or move, which line could close the answer) or name one delivery fix.
+The recommendation names one fix to how they said it, using their own words: a sentence that broke off or restarted,
+a detour to cut, a line to move, a stronger existing line to end on, or one delivery fix (pace, fillers, pauses).
 
 Return ONLY JSON: {{"grade": "A|A-|B+|B|B-|C+|C|C-|D", "fluency": "<=12 words", "coherence": "<=12 words",
 "recommendation": "the single most useful fix for the next take, <=35 words, concrete, no preamble"}}"""
@@ -174,7 +173,7 @@ class H(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 return s.reply({"error": str(e)[:300]}, 500)
             def bg():
-                try: r = grade(text, m, q, sess)
+                try: r = grade(text, m)
                 except Exception as e: r = {"error": str(e)[:300]}
                 json.dump({**r, "question": sess["questions"][q - 1]["q"], "metrics": m, "transcript": text}, open(base + ".grade.json", "w"), indent=1, ensure_ascii=False)
             threading.Thread(target=bg, daemon=True).start()

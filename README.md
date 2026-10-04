@@ -29,9 +29,9 @@ It shows one question at a time in large type, records you answering it, and wit
 it went: your pace, your fillers, where you hesitated, a letter grade with a note on fluency and one on coherence,
 and the single most useful thing to fix on the next take.
 
-The grade is about what you said and how you said it, nothing else. talkTalk doesn't know your subject, so it
-never tells you what you should have said; its advice points at your own words: where the thread broke, which
-sentence to cut or move, which line could close the answer.
+The grade is about how you said what you said, nothing else. It never sees the question or your notes, and never
+judges what the answer contains or tells you what you should have said. Its advice points at your own words: a
+sentence that broke off, a detour to cut, a line to move, a stronger line of yours to end on, or your pace.
 
 ## How to prepare with it
 
@@ -46,8 +46,8 @@ sentence to cut or move, which line could close the answer.
 5. **Come back another day.** Every session is kept and searchable on the dashboard, so you can run an interview's
    questions again closer to the date. Every take (recording, transcript, grade) is saved in the session's folder.
 
-Recordings and transcription stay on your machine (Whisper runs locally). The transcript and the question go to Claude
-for grading, and Chrome's live transcript uses Google's speech recognition.
+Recordings and transcription stay on your machine (Whisper runs locally). Only the transcript and its measurements go to
+Claude for grading, and Chrome's live transcript uses Google's speech recognition.
 
 ## How it works
 
