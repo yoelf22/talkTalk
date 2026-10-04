@@ -37,12 +37,11 @@ button:focus-visible{outline:3px solid var(--air);outline-offset:2px}
  <div class="box" id="gradebox" hidden><div class="label">Coach's grade</div><div style="display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap"><div id="grade" style="font:600 64px/1 var(--q);min-width:1.6em">…</div><div id="gradetxt" style="flex:1;min-width:0;font-size:22px"></div></div></div>
  <div class="box" id="statbox" hidden><div class="label">This take</div><div class="stats" id="stats"></div><p id="note" style="margin:12px 0 0;font-size:18px;color:var(--mute)"></p></div>
  <div class="box" id="ansbox" hidden><div class="label">Your notes</div><div id="ans"></div></div>
- <div class="keys">Keys: Space records or stops · ← → change question · A shows your notes. Takes are saved for Claude to review.</div>
+ <div class="keys">Keys: Space records or stops · ← → change question · A shows your notes. Every take is saved in your talk rehersals folder.</div>
 </div>
 <script>
-let Q=[],i=0,recOn=false,t0=0,tick,mr,chunks=[],sr,finalTx="",stream,ctx,an,raf,pauses=[],silentSince=null,speechStart=null;
+let Q=[],i=0,recOn=false,t0=0,tick,mr,chunks=[],sr,finalTx="",stream,ctx,an,raf;
 const $=id=>document.getElementById(id);
-const FILLERS=["um","uh","er","ah","erm","you know","i mean","sort of","kind of","basically","actually","like i said","so yeah"];
 const SID=encodeURIComponent(new URLSearchParams(location.search).get("s"));
 fetch("/api/session?s="+SID).then(r=>r.json()).then(d=>{if(d.error){$("q").textContent="Session not found. Go back to all sessions.";return}Q=d.questions;document.title=d.topic+" · Rehearse";$("topic").textContent=d.id+" · "+d.topic;show()});
 function show(){const x=Q[i];$("pos").textContent=`Question ${i+1} of ${Q.length} · notes ${x.a?x.a.split(/\s+/).length+" words":"not given"}`;$("q").textContent=x.q;$("ans").textContent=x.a;$("ansbox").hidden=true;$("show").textContent="Show my notes";$("tx").textContent="Press Record and answer aloud. Your words appear here.";$("statbox").hidden=true;$("gradebox").hidden=true;$("timer").textContent="0:00"}
@@ -54,13 +53,12 @@ addEventListener("keydown",e=>{if(e.target.tagName==="BUTTON"&&e.key===" ")e.pre
 const fmt=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`;
 async function start(){
  try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){$("tx").textContent="Microphone blocked. Allow it in Chrome's address bar, then try again.";return}
- recOn=true;document.body.classList.add("rec");$("rec").textContent="■ Stop";finalTx="";pauses=[];silentSince=null;speechStart=null;$("statbox").hidden=true;$("tx").textContent="Listening…";
+ recOn=true;document.body.classList.add("rec");$("rec").textContent="■ Stop";finalTx="";$("statbox").hidden=true;$("tx").textContent="Listening…";
  chunks=[];mr=new MediaRecorder(stream);mr.ondataavailable=e=>chunks.push(e.data);mr.start();
  ctx=new AudioContext();an=ctx.createAnalyser();an.fftSize=1024;ctx.createMediaStreamSource(stream).connect(an);const buf=new Float32Array(an.fftSize);
  t0=performance.now();tick=setInterval(()=>$("timer").textContent=fmt((performance.now()-t0)/1000),250);
- (function loop(){an.getFloatTimeDomainData(buf);let s=0;for(const v of buf)s+=v*v;const rms=Math.sqrt(s/buf.length),now=performance.now();
+ (function loop(){an.getFloatTimeDomainData(buf);let s=0;for(const v of buf)s+=v*v;const rms=Math.sqrt(s/buf.length);
   $("lvl").style.width=Math.min(100,rms*600)+"%";
-  if(rms<0.012){if(silentSince===null)silentSince=now}else{if(speechStart===null)speechStart=now;if(silentSince!==null&&speechStart!==null&&silentSince>speechStart){const g=(now-silentSince)/1000;if(g>=0.7)pauses.push(+g.toFixed(1))}silentSince=null}
   raf=requestAnimationFrame(loop)})();
  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
  if(SR){sr=new SR();sr.lang="en-US";sr.continuous=true;sr.interimResults=true;
@@ -71,36 +69,26 @@ async function start(){
 function stop(){
  recOn=false;document.body.classList.remove("rec");$("rec").textContent="● Record again";clearInterval(tick);cancelAnimationFrame(raf);$("lvl").style.width="0";
  try{sr&&sr.stop()}catch(e){}
- const dur=(performance.now()-t0)/1000;
  mr.onstop=()=>{const blob=new Blob(chunks,{type:"audio/webm"});stream.getTracks().forEach(t=>t.stop());ctx.close();
   $("gradebox").hidden=false;$("grade").textContent="…";$("gradetxt").textContent="Transcribing…";
-  const qn=i+1,add=(k,v)=>{const p=document.createElement("p");const b=document.createElement("b");b.textContent=k;p.append(b," ",v);$("gradetxt").append(p)},
-   meas=m=>`${m.seconds}s · ${m.wpm} wpm · ${m.fillers_per_100w} fillers per 100 words · ${m.pauses_2s} pauses over 2 s · ${m.cutoffs} cut-off words`;
+  const qn=i+1,add=(k,v)=>{const p=document.createElement("p");const b=document.createElement("b");b.textContent=k;p.append(b," ",v);$("gradetxt").append(p)};
   fetch(`/audio?s=${SID}&q=${qn}`,{method:"POST",body:blob}).then(r=>r.json()).then(t=>{if(i+1!==qn)return;
    if(t.error){$("grade").textContent="?";$("gradetxt").textContent="Transcription failed: "+t.error;return}
-   $("gradetxt").innerHTML="";add("Measured:",meas(t.metrics));add("","Grading…");
+   $("tx").textContent=t.transcript;stats(t.metrics);$("gradetxt").textContent="Grading…";
    const poll=()=>fetch(`/grade?s=${SID}&id=${t.id}`).then(r=>r.json()).then(g=>{if(i+1!==qn)return;if(g.pending)return setTimeout(poll,1000);
-    $("gradetxt").innerHTML="";if(g.error){$("grade").textContent="?";add("Grading failed:",g.error);add("Measured:",meas(t.metrics));return}
-    $("grade").textContent=g.grade;add("Next take:",g.recommendation);add("Fluency:",g.fluency);add("Coherence:",g.coherence);add("Measured:",meas(t.metrics))});
+    $("gradetxt").innerHTML="";if(g.error){$("grade").textContent="?";add("Grading failed:",g.error);return}
+    $("grade").textContent=g.grade;add("Next take:",g.recommendation);add("Fluency:",g.fluency);add("Coherence:",g.coherence)});
    poll();
   }).catch(()=>{$("grade").textContent="?";$("gradetxt").textContent="Couldn't reach the grading server."})};mr.stop();
- setTimeout(()=>report(dur),700);
 }
-function report(dur){
- const text=finalTx.trim(),low=" "+text.toLowerCase().replace(/[^a-z' ]/g," ")+" ",words=text?text.split(/\s+/).length:0;
- const fill={};FILLERS.forEach(f=>{const n=(low.match(new RegExp(" "+f+" ","g"))||[]).length;if(n)fill[f]=n});
- const reps=(low.match(/\b(\w+) \1\b/g)||[]).length,long=pauses.filter(p=>p>=2).length,speak=Math.max(1,dur-pauses.reduce((a,b)=>a+b,0));
- const wpm=Math.round(words/(dur/60)),aw=Math.round(words/(speak/60)),fn=Object.values(fill).reduce((a,b)=>a+b,0);
- const cls=(v,lo,hi)=>v<lo||v>hi?"warn":"good";
- $("stats").innerHTML=`<div class="stat"><b>${fmt(dur)}</b><span>length (aim 1:00 to 2:00)</span></div>
- <div class="stat"><b class="${cls(wpm,120,170)}">${wpm}</b><span>words per minute (aim 130 to 160)</span></div>
- <div class="stat"><b>${aw}</b><span>pace while talking</span></div>
- <div class="stat"><b class="${pauses.length>words/12?"warn":"good"}">${pauses.length}</b><span>pauses over 0.7 s</span></div>
- <div class="stat"><b class="${long>2?"warn":"good"}">${long}</b><span>pauses over 2 s</span></div>
- <div class="stat"><b class="${fn>3?"warn":"good"}">${fn}</b><span>filler words</span></div>
- <div class="stat"><b class="${reps>1?"warn":"good"}">${reps}</b><span>repeated words</span></div>`;
- $("note").textContent=(fn?"Fillers: "+Object.entries(fill).map(([k,v])=>`"${k}" ×${v}`).join(", ")+". ":"")+"Chrome's transcript drops some “um”s, so the pause count is the more reliable sign of hesitation. Take saved for review.";
+// The numbers come from Whisper's transcript, the same one the grader reads (Chrome's live transcript drops fillers)
+function stats(m){
+ const tile=(v,label,warn)=>`<div class="stat"><b class="${warn?"warn":"good"}">${v}</b><span>${label}</span></div>`,fw=m.filler_words||{};
+ $("stats").innerHTML=!m.seconds?tile(0,"words heard",true):
+  tile(fmt(m.seconds),"length (aim 0:45 to 2:00)",m.seconds<45||m.seconds>120)+tile(m.wpm,"words per minute (aim 130 to 160)",m.wpm<130||m.wpm>160)+
+  tile(m.fillers,`fillers, ${m.fillers_per_100w} per 100 words (aim under 5)`,m.fillers_per_100w>=5)+tile(m.mid_sentence_pauses,"pauses mid-sentence",m.mid_sentence_pauses>0)+
+  tile(m.pauses_0_7s,"pauses over 0.7 s",m.pauses_0_7s>m.words/12)+tile(m.pauses_2s,"pauses over 2 s",m.pauses_2s>0)+tile(m.cutoffs,"cut-off words",m.cutoffs>1);
+ $("note").textContent=Object.keys(fw).length?"Fillers: "+Object.entries(fw).map(([k,v])=>`"${k}" ×${v}`).join(", ")+".":"";
  $("statbox").hidden=false;
- fetch(`/take?s=${SID}&q=${i+1}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({q:i+1,question:Q[i].q,duration:+dur.toFixed(1),words,wpm,pauses,fillers:fill,repeats:reps,transcript:text,at:new Date().toISOString()})});
 }
 </script></body></html>

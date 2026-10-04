@@ -24,7 +24,7 @@ def metrics(wjson):
     fill = sum(t in FILL for t in toks)
     return d["text"].strip(), {
         "seconds": round(dur), "words": len(words), "wpm": round(len(words) / (dur / 60)),
-        "fillers": fill, "fillers_per_100w": round(fill / max(1, len(words)) * 100, 1),
+        "fillers": fill, "filler_words": {f: toks.count(f) for f in FILL if f in toks}, "fillers_per_100w": round(fill / max(1, len(words)) * 100, 1),
         "cutoffs": sum(1 for w in W if w["word"].strip().endswith("-")),
         "pauses_0_7s": sum(g >= 0.7 for g in gaps), "pauses_2s": sum(g >= 2 for g in gaps),
         "mid_sentence_pauses": mid}
@@ -163,24 +163,21 @@ class H(http.server.SimpleHTTPRequestHandler):
             if not 1 <= q <= len(sess["questions"]): raise ValueError("bad question number")
         except Exception as e:
             return s.reply({"error": str(e)[:300]}, 400)
+        if path != "/audio": return s.send_error(404)
         T = f"{S}/{sess['id']}/takes"
-        if path == "/audio":
-            base = f"{T}/q{q}-{stamp}"
-            open(base + ".webm", "wb").write(body)
-            try:
-                os.makedirs(f"{T}/w", exist_ok=True)
-                text, m = transcribe(base + ".webm", f"{T}/w/q{q}-{stamp}.json")
-            except Exception as e:
-                return s.reply({"error": str(e)[:300]}, 500)
-            def bg():
-                try: r = grade(text, m)
-                except Exception as e: r = {"error": str(e)[:300]}
-                json.dump({**r, "question": sess["questions"][q - 1]["q"], "metrics": m, "transcript": text}, open(base + ".grade.json", "w"), indent=1, ensure_ascii=False)
-            threading.Thread(target=bg, daemon=True).start()
-            s.reply({"id": f"q{q}-{stamp}", "metrics": m, "transcript": text})
-        else:
-            open(f"{T}/q{q}-{stamp}.json", "w").write(json.dumps(json.loads(body), indent=1, ensure_ascii=False))
-            s.send_response(204); s.end_headers()
+        base = f"{T}/q{q}-{stamp}"
+        open(base + ".webm", "wb").write(body)
+        try:
+            os.makedirs(f"{T}/w", exist_ok=True)
+            text, m = transcribe(base + ".webm", f"{T}/w/q{q}-{stamp}.json")
+        except Exception as e:
+            return s.reply({"error": str(e)[:300]}, 500)
+        def bg():
+            try: r = grade(text, m)
+            except Exception as e: r = {"error": str(e)[:300]}
+            json.dump({**r, "question": sess["questions"][q - 1]["q"], "metrics": m, "transcript": text}, open(base + ".grade.json", "w"), indent=1, ensure_ascii=False)
+        threading.Thread(target=bg, daemon=True).start()
+        s.reply({"id": f"q{q}-{stamp}", "metrics": m, "transcript": text})
 
 os.makedirs(S, exist_ok=True)
 open(f"{S}/talkTalk.html", "w").write("""<!doctype html><meta charset="utf-8"><title>talkTalk</title>

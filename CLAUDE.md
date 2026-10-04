@@ -25,12 +25,12 @@ Data: `<data dir>/<id>/session.json` = `{id, topic, name, date, questions: [{q, 
 
 Questionnaire import: files in the data dir root (`GET /api/files`) are parsed by `parse()` (`GET /api/parse?f=`; macOS `textutil` for anything but .txt/.md): a line ending in `?` starts a question, following lines are its answer, bullets/numbering/`Q:`/`A:`/markdown emphasis stripped. On create, the chosen `source` file moves into `<id>/`.
 
-Endpoints: `GET /api/sessions` (list, with take counts), `POST /api/sessions` (create), `GET /api/session?s=`, `POST /api/session?s=` (edit topic/name/date and the questions; the ID never changes. Takes are filed by question number, so inserting or removing a question shifts which question older takes belong to; grade files written since this change also store the question text), `POST /audio?s=&q=`, `GET /grade?s=&id=`, `POST /take?s=&q=`.
+Endpoints: `GET /api/sessions` (list, with take counts), `POST /api/sessions` (create), `GET /api/session?s=`, `POST /api/session?s=` (edit topic/name/date and the questions; the ID never changes. Takes are filed by question number, so inserting or removing a question shifts which question older takes belong to; grade files written since this change also store the question text), `POST /audio?s=&q=`, `GET /grade?s=&id=`.
 
-Each take has **two independent pipelines**:
+Each take:
 
-1. **Browser-side (instant, rough):** Chrome Web Speech API gives a live transcript; an `AnalyserNode` RMS threshold detects pauses. On stop, `report()` computes wpm/fillers/repeats and POSTs JSON to `/take` → `takes/q{n}-{date}-{time}.json`. Chrome's transcript drops many "um"s, so these numbers are approximate.
-2. **Server-side (authoritative):** the `MediaRecorder` webm blob is POSTed to `/audio` → saved as `takes/q{n}-{date}-{time}.webm` → Whisper `small.en` with `word_timestamps=True` and a filler-laden `initial_prompt` (so fillers are kept) → `metrics()` returns synchronously (~5 s). Grading then runs in a **background thread**: `grade()` pipes a prompt to `claude -p --model sonnet --tools ""` and writes `takes/q{n}-{date}-{time}.grade.json`. The page polls `GET /grade` every second until the file exists.
+1. **Browser (while talking):** Chrome's Web Speech API shows a live transcript, and an `AnalyserNode` drives the level meter. Nothing is counted from it: Chrome drops fillers, and showing its counts next to Whisper's once put "0 fillers" beside a grade that quoted four "um"s.
+2. **Server (all numbers):** the `MediaRecorder` webm blob is POSTed to `/audio` → saved as `takes/q{n}-{date}-{time}.webm` → Whisper `small.en` with `word_timestamps=True` and a filler-laden `initial_prompt` (so fillers are kept) → `metrics()` returns synchronously (~5 s) and the page renders the "This take" tiles and Whisper's transcript from it (`stats()` in `rehearse.html`). Grading then runs in a **background thread**: `grade()` pipes a prompt to `claude -p --model sonnet --tools ""` and writes `takes/q{n}-{date}-{time}.grade.json`. The page polls `GET /grade` every second until the file exists.
 
 Details that matter when editing:
 - `grade()` strips `ANTHROPIC_API_KEY` from the subprocess env so the CLI uses the user's subscription login, not API billing. Keep that.

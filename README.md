@@ -55,7 +55,7 @@ Claude for grading, and Chrome's live transcript uses Google's speech recognitio
    questions, with optional notes for yourself under each. To skip the typing, drop your questionnaire (.txt, .md, .docx, .rtf, .odt, .html…) into the data
    folder and pick it in the form: every line ending in `?` becomes a question, and the lines after it its notes. Check the rows before you create the session; the file then moves into the session's folder. Each
    session gets an ID made of the topic's first word and a counter, such as `Product-1`, `Product-2`.
-2. **Rehearse.** Open the session and answer each question aloud. Chrome shows a live transcript while you talk.
+2. **Rehearse.** Open the session and answer each question aloud. Chrome shows a rough live transcript while you talk; when you stop, Whisper's transcript replaces it, and every number on the page comes from Whisper.
 3. **Read the feedback.** When you stop, Whisper transcribes the recording with word timings and fillers kept
    (about 5 seconds), and talkTalk measures:
    - length and words per minute (target 130 to 160)
