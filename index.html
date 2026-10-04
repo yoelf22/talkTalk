@@ -78,7 +78,7 @@ function addQ(x={q:"",a:""},focus=true){
 }
 function loadFiles(){fetch("/api/files").then(r=>r.json()).then(d=>{
  $("src").replaceChildren(el("option",{value:"",textContent:d.files.length?"Choose a file…":"No files in the folder"}),...d.files.map(f=>el("option",{value:f,textContent:f})));
- $("srchint").textContent=`Put a questionnaire (.txt, .md, .docx, .rtf, …) in ${d.dir} and it appears here. Each question must be on its own line and end with "?"; the lines after it become the written answer. The file moves into the session's folder when you create it.`})}
+ $("srchint").textContent=`Put a questionnaire (.txt, .md, .docx, .rtf, …) in ${d.dir} and it appears here. Each question must be on its own line and end with "?"; the lines after it become your notes. The file moves into the session's folder when you create it.`})}
 $("src").onchange=()=>{const f=$("src").value;if(!f)return;$("ferr").textContent="";
  fetch("/api/parse?f="+encodeURIComponent(f)).then(r=>r.json()).then(d=>{if(d.error){$("ferr").textContent=d.error;return}
   $("qs").replaceChildren();d.forEach(x=>addQ(x,false));if(!$("topic").value)$("topic").focus()})};
