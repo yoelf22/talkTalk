@@ -44,7 +44,7 @@ let Q=[],i=0,recOn=false,t0=0,tick,mr,chunks=[],sr,finalTx="",stream,ctx,an,raf;
 const $=id=>document.getElementById(id);
 const SID=encodeURIComponent(new URLSearchParams(location.search).get("s"));
 fetch("/api/session?s="+SID).then(r=>r.json()).then(d=>{if(d.error){$("q").textContent="Session not found. Go back to all sessions.";return}Q=d.questions;document.title=d.topic+" · Rehearse";$("topic").textContent=d.id+" · "+d.topic;show()});
-function show(){const x=Q[i];$("pos").textContent=`Question ${i+1} of ${Q.length} · notes ${x.a?x.a.split(/\s+/).length+" words":"not given"}`;$("q").textContent=x.q;$("ans").textContent=x.a;$("ansbox").hidden=true;$("show").textContent="Show my notes";$("tx").textContent="Press Record and answer aloud. Your words appear here.";$("statbox").hidden=true;$("gradebox").hidden=true;$("timer").textContent="0:00"}
+function show(){const x=Q[i];$("rec").textContent="● Record answer";$("pos").textContent=`Question ${i+1} of ${Q.length} · notes ${x.a?x.a.split(/\s+/).length+" words":"not given"}`;$("q").textContent=x.q;$("ans").textContent=x.a;$("ansbox").hidden=true;$("show").textContent="Show my notes";$("tx").textContent="Press Record and answer aloud. Your words appear here.";$("statbox").hidden=true;$("gradebox").hidden=true;$("timer").textContent="0:00"}
 function go(d){if(recOn)return;i=Math.max(0,Math.min(Q.length-1,i+d));show()}
 $("prev").onclick=()=>go(-1);$("next").onclick=()=>go(1);
 $("show").onclick=()=>{const h=$("ansbox").hidden;$("ansbox").hidden=!h;$("show").textContent=h?"Hide my notes":"Show my notes"};
