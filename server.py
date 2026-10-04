@@ -44,6 +44,7 @@ def grade(text, m, q, sess):
     item = sess["questions"][q - 1]
     prompt = f"""You are a speaking coach. Someone is rehearsing answers for an interview.
 Session: {sess['topic']} / {sess['name']} / {sess['date']}. Grade this spoken answer and give one short recommendation.
+Context from the speaker: {sess.get('context') or '(none)'}
 
 Question: {item['q']}
 Their prepared written answer (reference for content, not a script to recite; may be empty):
@@ -96,18 +97,29 @@ def parse(f):
     if not qs: raise ValueError("no questions found: each question must be on its own line and end with '?'")
     return [{"q": x["q"], "a": x["a"].strip()} for x in qs]
 
+def details(t):
+    topic, name, date, context = (str(t.get(k, "")).strip() for k in ("topic", "name", "date", "context"))
+    if not (topic and name and date): raise ValueError("topic, name and date are required")
+    return {"topic": topic, "name": name, "date": date, "context": context}
+
+def update(sid, t):
+    """Edits topic, name, date and context. The ID and the questions stay as they are."""
+    sess = {**load(sid), **details(t)}
+    json.dump(sess, open(f"{S}/{sid}/session.json", "w"), indent=1, ensure_ascii=False)
+    return sess
+
 def create(t):
-    topic, name, date = (str(t.get(k, "")).strip() for k in ("topic", "name", "date"))
+    d = details(t)
     qs = [{"q": str(x.get("q", "")).strip(), "a": str(x.get("a", "")).strip()} for x in t.get("questions", [])]
     qs = [x for x in qs if x["q"]]
     src = t.get("source") or None
     if src and src not in files(): raise ValueError("questionnaire file is no longer in the folder")
-    if not (topic and name and date and qs): raise ValueError("topic, name, date and at least one question are required")
-    word = re.sub(r"[^A-Za-z0-9]", "", topic.split()[0]) or "Session"
+    if not qs: raise ValueError("add at least one question")
+    word = re.sub(r"[^A-Za-z0-9]", "", d["topic"].split()[0]) or "Session"
     n = 1 + max([int(x.rsplit("-", 1)[1]) for x in (os.listdir(S) if os.path.isdir(S) else []) if x.startswith(word + "-") and SID.fullmatch(x)], default=0)
     sid = f"{word}-{n}"
     os.makedirs(f"{S}/{sid}/takes")
-    sess = {"id": sid, "topic": topic, "name": name, "date": date, "questions": qs, "source": src}
+    sess = {"id": sid, **d, "questions": qs, "source": src}
     if src: os.rename(f"{S}/{src}", f"{S}/{sid}/{src}")  # the questionnaire moves in with its session
     json.dump(sess, open(f"{S}/{sid}/session.json", "w"), indent=1, ensure_ascii=False)
     return sess
@@ -138,6 +150,7 @@ class H(http.server.SimpleHTTPRequestHandler):
         stamp = time.strftime("%Y%m%d-%H%M%S")
         try:
             if path == "/api/sessions": return s.reply(create(json.loads(body)))
+            if path == "/api/session": return s.reply(update(a.get("s"), json.loads(body)))
             sess, q = load(a.get("s")), int(a.get("q", 0))
             if not 1 <= q <= len(sess["questions"]): raise ValueError("bad question number")
         except Exception as e:

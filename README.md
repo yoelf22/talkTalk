@@ -63,8 +63,12 @@ to Claude for grading, and Chrome's live transcript uses Google's speech recogni
 
    Claude (Sonnet, through the Claude Code CLI) then grades the take from A to D, with a note on fluency, a note on
    content, and one concrete fix for the next take.
-4. **Come back later.** The dashboard lists every session and can search them by topic, name or ID, so you can
-   return to an earlier interview and rehearse it again.
+4. **Come back later.** The dashboard lists every session and can search them by topic, name, ID or context, so you
+   can return to an earlier interview and rehearse it again. **Edit** on a session changes its topic, name, date or
+   context; the session ID stays the same.
+
+The optional **Context** field is where you tell the grader what the interview is: who is asking, the format and
+length, the audience, what you want them to take away. The grade takes it into account.
 
 ## Requirements
 
