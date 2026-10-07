@@ -37,8 +37,7 @@ label input,label textarea,label select{text-transform:none;letter-spacing:0;col
    <label>Name<input id="name" required></label>
    <label style="flex:0 1 200px">Date<input id="date" type="date" required></label>
   </div>
-  <label>Grader<select id="grader"><option value="auto">Auto</option><option value="claude">Claude Code</option><option value="openai">OpenAI</option></select></label>
-  <p class="mute" id="graderhint"></p>
+  <label>Grader<select id="grader"><option value="">Default</option></select></label>
   <p class="mute">Session ID: <b id="sid">—</b></p>
   <div id="qpart">
    <label>Import questions from a file<select id="src"></select></label>
@@ -51,10 +50,13 @@ label input,label textarea,label select{text-transform:none;letter-spacing:0;col
   <p class="err" id="ferr"></p>
  </form>
 
- <form class="box" id="keybox" hidden>
-  <div class="row"><label>OpenAI API key<input id="key" type="password" autocomplete="off" placeholder="sk-..."></label>
-   <button class="primary" type="submit" style="align-self:flex-end">Use OpenAI</button></div>
-  <p class="mute" id="keyhint">Have an OpenAI API key? Paste it once and every take is graded by OpenAI. It's checked with OpenAI, then kept on this Mac only (~/.config/talktalk). Only transcripts and their measurements are sent.</p>
+ <form class="box" id="gradebox">
+  <h2>Grading</h2>
+  <label>Default grader<select id="gdefault"></select></label>
+  <p class="mute" id="ghint">Checking which models you can use…</p>
+  <div class="row" id="keyrow" hidden><label>OpenAI API key<input id="key" type="password" autocomplete="off" placeholder="sk-..."></label>
+   <button type="submit" style="align-self:flex-end">Add key</button></div>
+  <p class="mute" id="keyhint" hidden>Have an OpenAI API key? Add it to choose from your OpenAI models. It's checked with OpenAI, then kept on this Mac only (~/.config/talktalk).</p>
  </form>
 
  <input id="search" type="search" placeholder="Search by topic, name or session ID" aria-label="Search sessions">
@@ -75,10 +77,10 @@ function render(){
   [el("p",{className:"mute"},S.length?"No session matches.":"No sessions yet. Start one with + New session.")]));
 }
 fetch("/api/sessions").then(r=>r.json()).then(d=>{S=d;render()});graders();
-$("keybox").onsubmit=e=>{e.preventDefault();$("keyhint").textContent="Checking the key with OpenAI…";
+$("gradebox").onsubmit=e=>{e.preventDefault();$("keyhint").textContent="Checking the key with OpenAI…";
  fetch("/api/openai-key",{method:"POST",body:JSON.stringify({key:$("key").value})}).then(r=>r.json()).then(d=>{$("key").value="";
   if(d.error){$("keyhint").textContent=d.error;$("keyhint").className="err";return}
-  $("keyhint").className="mute";graders();$("list").before(el("p",{className:"mute"},`OpenAI is set up (${d.model}). Every session on Auto is now graded by OpenAI.`))})
+  $("keyhint").className="mute";graders()})
   .catch(()=>$("keyhint").textContent="Couldn't reach the server.")};
 $("search").oninput=render;
 
@@ -95,13 +97,22 @@ function loadFiles(){fetch("/api/files").then(r=>r.json()).then(d=>{
 $("src").onchange=()=>{const f=$("src").value;if(!f)return;$("ferr").textContent="";
  fetch("/api/parse?f="+encodeURIComponent(f)).then(r=>r.json()).then(d=>{if(d.error){$("ferr").textContent=d.error;return}
   $("qs").replaceChildren();d.forEach(x=>addQ(x,false));if(!$("topic").value)$("topic").focus()})};
-function graders(){fetch("/api/graders").then(r=>r.json()).then(g=>{$("keybox").hidden=g.openai;
- for(const o of $("grader").options)if(o.value!=="auto")o.textContent=(o.value==="claude"?"Claude Code":"OpenAI")+(g[o.value]?"":" (not set up)");
- $("graderhint").textContent=`Only the transcript and its measurements are sent. Auto uses OpenAI if a key is set, otherwise Claude Code. Available now: ${["claude","openai"].filter(k=>g[k]).map(k=>k==="claude"?"Claude Code":"OpenAI").join(", ")||"none"}.`})}
+let G={options:[],default:null};
+function graders(){return fetch("/api/graders").then(r=>r.json()).then(g=>{G=g;
+ const opt=o=>el("option",{value:o.id,textContent:o.label});
+ $("gdefault").replaceChildren(...(g.options.length?g.options.map(opt):[el("option",{value:"",textContent:"None available yet"})]));$("gdefault").value=g.default||"";
+ $("ghint").className="mute";$("ghint").textContent=!g.options.length?"Add an OpenAI key below, or install Claude Code.":
+  g.chosen?"Every session uses this unless its own form picks another. Only transcripts and their measurements are sent.":
+  "These are the models you can use. Pick one and it becomes the default for every session.";
+ $("keyrow").hidden=$("keyhint").hidden=g.openai_key;
+ const cur=$("grader").value,d=g.options.find(o=>o.id===g.default);
+ $("grader").replaceChildren(el("option",{value:"",textContent:"Default"+(d?` (${d.label})`:"")}),...g.options.map(opt));$("grader").value=cur})}
+$("gdefault").onchange=()=>fetch("/api/grader",{method:"POST",body:JSON.stringify({id:$("gdefault").value})}).then(r=>r.json())
+ .then(d=>{if(d.error){$("ghint").textContent=d.error;$("ghint").className="err";return}graders().then(()=>$("ghint").textContent="Saved. "+$("ghint").textContent)});
 function mode(sess){graders();editing=sess;$("ftitle").textContent=sess?"Edit session":"New session";$("submit").textContent=sess?"Save":"Create and rehearse";
  $("qpart").hidden=!!sess;$("renum").hidden=!sess;$("ferr").textContent="";$("form").hidden=false;$("form").scrollIntoView()}
-function edit(x){mode(x);for(const k of ["topic","name","date"])$(k).value=x[k]||"";$("grader").value=x.grader||"auto";$("qs").replaceChildren();x.questions.forEach(q=>addQ(q,false));$("sid").textContent=x.id+" (stays the same)";$("topic").focus()}
-$("new").onclick=()=>{if(editing){for(const k of ["topic","name","date"])$(k).value="";$("grader").value="auto";$("qs").replaceChildren()}mode(null);$("sid").textContent="—";loadFiles();$("date").value||=new Date().toISOString().slice(0,10);if(!$("qs").children.length)addQ();$("topic").focus()};
+function edit(x){mode(x);for(const k of ["topic","name","date"])$(k).value=x[k]||"";graders().then(()=>$("grader").value=x.grader&&x.grader!=="auto"?x.grader:"");$("qs").replaceChildren();x.questions.forEach(q=>addQ(q,false));$("sid").textContent=x.id+" (stays the same)";$("topic").focus()}
+$("new").onclick=()=>{if(editing){for(const k of ["topic","name","date"])$(k).value="";$("grader").value="";$("qs").replaceChildren()}mode(null);$("sid").textContent="—";loadFiles();$("date").value||=new Date().toISOString().slice(0,10);if(!$("qs").children.length)addQ();$("topic").focus()};
 $("cancel").onclick=()=>{$("form").hidden=true;if(editing){editing=null;for(const k of ["topic","name","date"])$(k).value="";$("qs").replaceChildren()}};
 $("addq").onclick=addQ;
 $("topic").oninput=()=>editing||($("sid").textContent=$("topic").value.trim()?nextId($("topic").value):"—");

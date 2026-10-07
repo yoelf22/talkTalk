@@ -63,7 +63,7 @@ the session's grader (Claude or OpenAI), and Chrome's live transcript uses Googl
    - pauses over 0.7 s and over 2 s, and pauses in the middle of a sentence
    - cut-off words ("I- I think")
 
-   Takes under 5 words are measured but not graded. Otherwise the session's grader (Claude Code or OpenAI, see below) grades the take from A to D, with a note on fluency, a note on
+   Takes under 5 words are measured but not graded. Otherwise the chosen model (Claude or OpenAI, see Requirements) grades the take from A to D, with a note on fluency, a note on
    coherence, and one concrete fix for the next take.
 4. **Come back later.** The dashboard lists every session and can search them by topic, name or ID, so you
    can return to an earlier interview and rehearse it again. **Edit** on a session changes its topic, name, date,
@@ -73,17 +73,16 @@ the session's grader (Claude or OpenAI), and Chrome's live transcript uses Googl
 
 - macOS with [Homebrew](https://brew.sh)
 - `brew install openai-whisper ffmpeg`
-- A grader, one of:
-  - **An OpenAI API key.** If `OPENAI_API_KEY` is set in your shell, talkTalk picks it up, even when started from
-    the desktop app. Otherwise paste the key once in the box on the dashboard: it is checked with OpenAI, kept on
-    your Mac only (`~/.config/talktalk/openai_key`, readable by you alone) and used right away, no restart.
-    talkTalk picks the first of `gpt-5-mini`, `gpt-4.1-mini`, `gpt-4o-mini` your key can use; set `OPENAI_MODEL`
-    to choose another.
-  - **[Claude Code](https://claude.com/claude-code)** installed and logged in. Grading uses your Claude login
-    (Sonnet), not an API key.
+- A grader: Claude Code, an OpenAI API key, or both.
+  - **[Claude Code](https://claude.com/claude-code)** installed and logged in offers Sonnet, Opus and Haiku, on your
+    Claude login rather than an API key.
+  - **An OpenAI API key** offers the chat models that key can use. If `OPENAI_API_KEY` is set in your shell, talkTalk
+    picks it up, even when started from the desktop app. Otherwise add it once in the **Grading** box on the
+    dashboard: it's checked with OpenAI, kept on your Mac only (`~/.config/talktalk/openai_key`, readable by you
+    alone) and used right away, no restart.
 
-  Sessions on **Auto** (the default) use OpenAI when a key is set, otherwise Claude Code. A session can be pinned to
-  one or the other in its form. The grade shows which one graded it.
+  The **Grading** box lists every model you can use. Pick one and it becomes the default for every session; a
+  session can pick a different one in its form. The grade shows which model graded it.
 - Google Chrome (the live transcript uses its built-in speech recognition)
 
 `run.sh` starts the server with Homebrew's Python 3.11, because that is where the `openai-whisper` formula installs.
