@@ -31,7 +31,8 @@ on OpenAI, cost less per take. OpenAI bills each grade to your API account; Clau
 
 ## 3. Set up an interview
 
-Click **+ New session** and fill in:
+Click **+ New session**. Got the questionnaire as a file? Import it first (see **Questions** below) and most of the
+form fills itself. Otherwise fill in:
 
 - **Topic**, **Name** and **Date**. The session ID is made from the topic's first word plus a counter
   (`Product-1`, `Product-2`).
