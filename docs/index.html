@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>talkTalk</title>
+<meta name="description" content="Rehearse interview answers out loud and get every take measured and graded for coherence and fluency.">
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1f;--muted:#5f5f66;--line:#e3e1db;--card:#fff;--accent:#2f5bd3}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141416;--fg:#ececef;--muted:#a1a1aa;--line:#2c2c31;--card:#1c1c20;--accent:#7d9bff}}
+:root[data-theme="dark"]{--bg:#141416;--fg:#ececef;--muted:#a1a1aa;--line:#2c2c31;--card:#1c1c20;--accent:#7d9bff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:960px;margin:0 auto;padding:48px 16px 64px}
+h1{font-size:44px;margin:0 0 8px;letter-spacing:-.02em}
+h2{font-size:24px;margin:56px 0 12px}
+p,li{color:var(--fg)}
+.lede{font-size:21px;color:var(--muted);margin:0 0 24px}
+a{color:var(--accent)}
+.btn{display:inline-block;padding:10px 18px;border-radius:8px;background:var(--accent);color:#fff;text-decoration:none;font-weight:600;margin-right:8px}
+.btn.alt{background:none;color:var(--accent);border:1px solid var(--line)}
+img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:10px;display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+figure{margin:0}
+figcaption{color:var(--muted);font-size:14px;margin-top:6px}
+table{border-collapse:collapse;width:100%;font-size:15px}
+td,th{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top}
+pre{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px;overflow-x:auto;font-size:14px}
+footer{margin-top:64px;color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<main>
+<h1>talkTalk</h1>
+<p class="lede">Rehearse interview answers out loud and get every take measured and graded.</p>
+<p><a class="btn" href="https://github.com/yoelf22/talkTalk">Get it on GitHub</a><a class="btn alt" href="https://github.com/yoelf22/talkTalk/blob/main/HOWTOUSE.md">How to use</a></p>
+
+<h2>Knowing it is not the same as saying it</h2>
+<p>Most people prepare for an interview, a podcast or a panel by writing. Then they answer out loud and it comes out differently: longer than planned, "um" in every gap, sentences that start, stall and start again. None of it shows on the page, and little of it is audible to the speaker. The listener hears all of it.</p>
+<p>Speaking well comes down to two things. <b>Coherence:</b> the answer goes somewhere and ends on a clear final line. <b>Fluency:</b> an even pace, pauses between thoughts rather than inside them, few fillers, few false starts. Both are learned by saying the answer out loud many times and getting feedback after each attempt.</p>
+
+<h2>What it does</h2>
+<p>talkTalk shows one question at a time, records your answer, and within about 15 seconds tells you how it went: pace, fillers, where you hesitated, a letter grade with a note on fluency and one on coherence, and the single most useful fix for the next take.</p>
+<p>The grade is about how you said it, nothing else. The grader never sees the question or your notes and never tells you what you should have said.</p>
+<div class="grid">
+<figure><img src="screenshots/1-dashboard.png" alt="The dashboard"><figcaption>Dashboard: every session, searchable by topic</figcaption></figure>
+<figure><img src="screenshots/2-new-session-imported.png" alt="A new session filled in from a questionnaire"><figcaption>Import a questionnaire and most of the form fills itself</figcaption></figure>
+</div>
+
+<h2>What to expect</h2>
+<p>talkTalk ships with a made-up interview, <i>The Foo Bar Show</i>, with four takes graded by the real pipeline.</p>
+<table>
+<tr><th>Grade</th><th>What the take does</th></tr>
+<tr><td>A</td><td>One thread, 150 wpm, no fillers, ends on a clear line</td></tr>
+<tr><td>B-</td><td>A detour, a few fillers, a phrase that breaks off</td></tr>
+<tr><td>C</td><td>Restarts, hedging, 8 fillers, trails off with "So, yeah"</td></tr>
+<tr><td>D+</td><td>Abandoned sentences, 10 fillers at 60 wpm, no real ending</td></tr>
+</table>
+<div class="grid" style="margin-top:16px">
+<figure><img src="screenshots/4-take-A.png" alt="Feedback on the A take"><figcaption>A</figcaption></figure>
+<figure><img src="screenshots/5-take-B-minus.png" alt="Feedback on the B- take"><figcaption>B-</figcaption></figure>
+<figure><img src="screenshots/7-take-D-plus.png" alt="Feedback on the D+ take"><figcaption>D+</figcaption></figure>
+</div>
+
+<h2>Run it</h2>
+<p>Runs on your Mac. Recordings and transcription stay local (Whisper); only the transcript and its measurements go to the grader you choose: Claude Code or an OpenAI API key.</p>
+<pre>brew install openai-whisper ffmpeg
+git clone https://github.com/yoelf22/talkTalk.git
+cd talkTalk
+./run.sh</pre>
+<p>Needs macOS, Homebrew, Google Chrome, and Claude Code or an OpenAI API key. Full details in the <a href="https://github.com/yoelf22/talkTalk#readme">README</a>.</p>
+
+<footer>MIT licensed · <a href="https://github.com/yoelf22/talkTalk">github.com/yoelf22/talkTalk</a></footer>
+</main>
+</body>
+</html>
