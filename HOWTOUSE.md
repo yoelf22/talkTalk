@@ -61,8 +61,6 @@ One question fills the screen.
 - Answer without looking at your notes. Peek after the take, if at all.
 - While you talk, Chrome shows a rough live transcript. When you stop, Whisper's transcript replaces it.
 
-![The rehearsal page](docs/screenshots/3-rehearse.png)
-
 ## 5. Read the feedback
 
 About 5 seconds after you stop, **This take** shows Whisper's measurements: length, words per minute, fillers (and
@@ -81,9 +79,9 @@ you what you should have said. Takes under 5 words are measured but not graded.
 
 Apply that one fix, record again, repeat. Move on when the grade holds steady.
 
-![Feedback on a take graded C](docs/screenshots/6-take-C.png)
+![Feedback on a take graded B-](docs/screenshots/5-take-B-minus.png)
 
-The [README](README.md#what-to-expect) shows the example's A, B-, C and D+ takes side by side.
+The [README](README.md#what-to-expect) shows the example's A, B- and D+ takes side by side.
 
 ## 6. Change things later
 

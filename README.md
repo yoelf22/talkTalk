@@ -53,13 +53,9 @@ Grades come from a language model, so the same take can land a step higher or lo
 
 ![A new session filled in from the sample questionnaire](docs/screenshots/2-new-session-imported.png)
 
-![The rehearsal page](docs/screenshots/3-rehearse.png)
-
-| A | B- |
-|---|---|
-| ![Feedback on the A take](docs/screenshots/4-take-A.png) | ![Feedback on the B- take](docs/screenshots/5-take-B-minus.png) |
-| **C** | **D+** |
-| ![Feedback on the C take](docs/screenshots/6-take-C.png) | ![Feedback on the D+ take](docs/screenshots/7-take-D-plus.png) |
+| A | B- | D+ |
+|---|---|---|
+| ![Feedback on the A take](docs/screenshots/4-take-A.png) | ![Feedback on the B- take](docs/screenshots/5-take-B-minus.png) | ![Feedback on the D+ take](docs/screenshots/7-take-D-plus.png) |
 
 ## How to prepare with it
 
