@@ -39,9 +39,8 @@ Click **+ New session** and fill in:
 - **Questions**, one per row, each with optional notes for yourself. To skip the typing, click **Import questions from a file** and
   choose a questionnaire (.txt, .md, .docx, .rtf, .odt, .html). Your default grader model reads it (10 to 20
   seconds) and fills in the topic, name, date and questions, including ones that don't end in `?`. Your notes are
-  copied from the file word for word. The line under the button says which model filled it in. The model can pick
-  up things that aren't interview questions, such as a request to the guest, or a section heading inside a note:
-  check the form and remove what you don't want. Without a model, every line ending in `?` becomes a question.
+  copied from the file word for word. The line under the button says which model filled it in. Check the form and
+  fix anything before you continue. Without a model, every line ending in `?` becomes a question.
 
 Click **Create and rehearse**.
 
