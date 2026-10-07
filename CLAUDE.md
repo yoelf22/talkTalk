@@ -17,6 +17,10 @@ Interview-rehearsal tool: one question at a time, record a spoken answer, get it
 
 This repo is public. Interview content (questions, written answers, recordings, grades) lives outside the repo, in `~/Desktop/talk rehersals/` (override with `TALKTALK_DIR`). Never commit sample questions, a `questions.json`, or anything naming a real interview, and keep the grading prompt generic.
 
+## Example session and screenshots
+
+`example/questionnaire.md` is a fictional questionnaire; `example/Example-1/` is a complete session (session.json, the questionnaire, four takes with `.webm` + `.grade.json`). On startup, if the data dir has no sessions, the server copies `Example-1` in. The takes are macOS `say -v Samantha` audio (the voice ignores `-r`; slow it with ffmpeg `atempo`) graded by the real pipeline; keep them truthful, never hand-edit a grade. `docs/screenshots/` were taken against a server started with `TALKTALK_DIR` pointing at an empty temp folder, so no personal session appears in them.
+
 ## Architecture
 
 `server.py` (stdlib `http.server`, binds 127.0.0.1:8795) plus two pages with all UI and JS inline: `index.html` (dashboard: search + session list + new-session form) and `rehearse.html?s=<id>` (one session).
@@ -35,6 +39,6 @@ Each take:
 Details that matter when editing:
 - Graders are `provider:model` ids (`claude:sonnet`, `openai:gpt-4.1-mini`). `options()` lists what is usable now: Claude Code's `CLAUDE_MODELS` if the CLI is found (`shutil.which` or `~/.local/bin/claude`; the desktop app starts the server with a bare PATH), plus the OpenAI key's chat models from `/v1/models` filtered by `NOT_CHAT`, listed once per process. The dashboard default is saved in `~/.config/talktalk/settings.json` (`POST /api/grader`); before one is picked, the first option is used. A session's `grader` is `""` (use the default) or a pinned id; a pinned id that is no longer available falls back to the default. The OpenAI key comes from the env (`run.sh` borrows `OPENAI_API_KEY` from the login shell) or `~/.config/talktalk/openai_key` (0600), written by `POST /api/openai-key` after checking it. Each grade records `graded_by`.
 - `ask()` strips `ANTHROPIC_API_KEY` from the subprocess env so the CLI uses the user's subscription login, not API billing. Keep that.
-- Claude's output is parsed by regex-grabbing the first `{...}` block; the JSON shape (`grade`, `fluency`, `coherence`, `recommendation`) is what `rehearse.html` renders.
+- Claude's output is parsed by regex-grabbing the first `{...}` block; the JSON shape (`grade` on the scale A … C-, D+, D; `fluency`, `coherence`, `recommendation`) is what `rehearse.html` renders.
 - Question numbers are 1-based in URLs and filenames. The page drops stale responses if the user has moved to another question (`if(i+1!==qn)return`).
 - The grader gets only the transcript and measurements, and judges only how it was said (coherence, fluency), never what it contains: not the question, not whether it is specific or vague. The user explicitly does not want the question, notes, session context or any outside facts fed to it: it once kept pushing a "fact" from the notes that the user never said. Don't add them back.

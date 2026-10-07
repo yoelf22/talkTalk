@@ -109,8 +109,14 @@ def pick(choice):
 def ask(prompt, gid):
     who, name = gid.split(":", 1)
     if who == "claude":
-        return subprocess.run([CLAUDE, "-p", "--model", name, "--tools", ""], input=prompt, capture_output=True,
-                              text=True, env={k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}, timeout=180).stdout
+        # Own process group, so a timeout kills the CLI and anything it started (a child holding the pipe hangs us otherwise)
+        p = subprocess.Popen([CLAUDE, "-p", "--model", name, "--tools", ""], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                             stderr=subprocess.DEVNULL, text=True, start_new_session=True,
+                             env={k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"})
+        try: return p.communicate(prompt, timeout=180)[0]
+        except subprocess.TimeoutExpired:
+            os.killpg(p.pid, 9); p.wait()
+            raise RuntimeError("Claude Code didn't answer within 3 minutes; record the take again")
     return openai("chat/completions", {"model": name, "messages": [{"role": "user", "content": prompt}]})["choices"][0]["message"]["content"]
 
 def grade(text, m, choice=""):
@@ -133,7 +139,7 @@ Targets: 130-160 wpm; under 5 fillers per 100 words; 45-120 seconds; pauses only
 The recommendation names one fix to how they said it, using their own words: a sentence that broke off or restarted,
 a detour to cut, a line to move, a stronger existing line to end on, or one delivery fix (pace, fillers, pauses).
 
-Return ONLY JSON: {{"grade": "A|A-|B+|B|B-|C+|C|C-|D", "fluency": "<=12 words", "coherence": "<=12 words",
+Return ONLY JSON: {{"grade": "A|A-|B+|B|B-|C+|C|C-|D+|D", "fluency": "<=12 words", "coherence": "<=12 words",
 "recommendation": "the single most useful fix for the next take, <=35 words, concrete, no preamble"}}"""
     gid, label = pick(choice)
     g = json.loads(re.search(r"\{.*\}", ask(prompt, gid), re.S).group(0))
@@ -297,6 +303,8 @@ class H(http.server.SimpleHTTPRequestHandler):
         s.reply({"id": f"q{q}-{stamp}", "metrics": m, "transcript": text})
 
 os.makedirs(S, exist_ok=True)
+if not any(SID.fullmatch(x) for x in os.listdir(S)) and os.path.isdir(f"{D}/example/Example-1"):
+    shutil.copytree(f"{D}/example/Example-1", f"{S}/Example-1")  # first run: a graded sample session to look at
 open(f"{S}/talkTalk.html", "w").write("""<!doctype html><meta charset="utf-8"><title>talkTalk</title>
 <body style="font:20px/1.5 system-ui;max-width:640px;margin:60px auto;padding:0 16px">
 <p id="m">Opening talkTalk…</p>

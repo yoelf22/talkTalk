@@ -11,6 +11,12 @@ Run `./run.sh` in the talkTalk folder, or double-click the desktop app if you bu
 Later you can also double-click `talkTalk.html` in your `talk rehersals` folder on the Desktop. It opens the
 dashboard, or tells you how to start talkTalk if it isn't running.
 
+On first run the dashboard also shows `Example-1`, a made-up interview with four graded takes (A, B-, C and D+).
+Open it to see what feedback looks like before you record anything. Its questionnaire is `example/questionnaire.md`
+in the talkTalk folder, if you want to try the import with it.
+
+![The dashboard](docs/screenshots/1-dashboard.png)
+
 ## 2. Choose who grades your takes (first time)
 
 The **Grading** box on the dashboard lists every model you can use right now:
@@ -45,6 +51,8 @@ form fills itself. Otherwise fill in:
 
 Click **Create and rehearse**.
 
+![A new session filled in from a questionnaire](docs/screenshots/2-new-session-imported.png)
+
 ## 4. Rehearse
 
 One question fills the screen.
@@ -52,6 +60,8 @@ One question fills the screen.
 - **Space** starts and stops recording. **← →** move between questions. **A** shows your notes.
 - Answer without looking at your notes. Peek after the take, if at all.
 - While you talk, Chrome shows a rough live transcript. When you stop, Whisper's transcript replaces it.
+
+![The rehearsal page](docs/screenshots/3-rehearse.png)
 
 ## 5. Read the feedback
 
@@ -70,6 +80,10 @@ The grade is about how you said what you said. The grader never sees the questio
 you what you should have said. Takes under 5 words are measured but not graded.
 
 Apply that one fix, record again, repeat. Move on when the grade holds steady.
+
+![Feedback on a take graded C](docs/screenshots/6-take-C.png)
+
+The [README](README.md#what-to-expect) shows the example's A, B-, C and D+ takes side by side.
 
 ## 6. Change things later
 

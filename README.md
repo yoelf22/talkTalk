@@ -33,6 +33,34 @@ The grade is about how you said what you said, nothing else. It never sees the q
 judges what the answer contains or tells you what you should have said. Its advice points at your own words: a
 sentence that broke off, a detour to cut, a line to move, a stronger line of yours to end on, or your pace.
 
+## What to expect
+
+talkTalk ships with a made-up interview, *The Foo Bar Show* (`example/questionnaire.md`), and on first run puts it on
+your dashboard as `Example-1` with four graded takes, one per question. The takes are synthetic speech (macOS text to
+speech) read from scripts written to sound good, average and poor, then run through the real pipeline: Whisper's
+transcript and measurements, and a grade from Claude Code · Sonnet.
+
+| Question | Grade | What the take does |
+|---|---|---|
+| What is Quux, in one sentence? | A | One thread, 150 wpm, no fillers, ends on a clear line |
+| Why did you start building it? | B- | A detour, a few fillers, a phrase that breaks off |
+| What was the hardest part of the first year? | C | Restarts, hedging, 8 fillers, trails off with "So, yeah" |
+| What's next for Quux? | D+ | Abandoned sentences, 10 fillers at 60 wpm, no real ending |
+
+Grades come from a language model, so the same take can land a step higher or lower when it is graded again.
+
+![The dashboard](docs/screenshots/1-dashboard.png)
+
+![A new session filled in from the sample questionnaire](docs/screenshots/2-new-session-imported.png)
+
+![The rehearsal page](docs/screenshots/3-rehearse.png)
+
+| A | B- |
+|---|---|
+| ![Feedback on the A take](docs/screenshots/4-take-A.png) | ![Feedback on the B- take](docs/screenshots/5-take-B-minus.png) |
+| **C** | **D+** |
+| ![Feedback on the C take](docs/screenshots/6-take-C.png) | ![Feedback on the D+ take](docs/screenshots/7-take-D-plus.png) |
+
 ## How to prepare with it
 
 1. **Prepare notes if they help, not scripts.** Each question can carry your own notes. They are for you only and

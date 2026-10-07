@@ -1,0 +1,26 @@
+{
+ "id": "Example-1",
+ "topic": "Example: The Foo Bar Show",
+ "name": "Alex Bar",
+ "date": "2027-01-15",
+ "grader": "",
+ "questions": [
+  {
+   "q": "What is Quux, in one sentence?",
+   "a": "A shared shopping list for families that sorts itself by the aisles of the store you're in.\nEvery list is in the wrong order: milk at the back, bread at the front, eggs at the back again.\nQuux learns each store's layout from the people who shop there and reorders the list as you walk.\nAbout ten minutes saved a visit. Close on: a list that knows where things are."
+  },
+  {
+   "q": "Why did you start building it?",
+   "a": "A bad Saturday: twenty items, the same store walked three times.\nSix years routing delivery trucks. Routing a truck and routing a shopper are close cousins.\nFirst version in a month; my family were the first users."
+  },
+  {
+   "q": "What was the hardest part of the first year?",
+   "a": "Data: every store is different, layouts change, people tag items in the wrong aisle.\nHiring was hard too, but the data was the hard part."
+  },
+  {
+   "q": "What's next for Quux?",
+   "a": "More stores first. Then recipes: pick a dinner and the ingredients land on the list in aisle order."
+  }
+ ],
+ "source": "questionnaire.md"
+}
