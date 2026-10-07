@@ -156,27 +156,60 @@ def sessions():
 INBOX = f"{S}/.inbox"  # uploaded questionnaires wait here until their session is created
 
 def upload(name, body):
-    """Keeps an uploaded questionnaire and returns its questions."""
+    """Keeps an uploaded questionnaire and fills the session from it: the default model if there is one, else '?' lines."""
     f = os.path.basename(name or "")
     if not f or f.startswith(".") or not body: raise ValueError("choose a questionnaire file")
     os.makedirs(INBOX, exist_ok=True)
     open(f"{INBOX}/{f}", "wb").write(body)
-    try: return {"source": f, "questions": parse(f)}
+    try:
+        txt = read_text(f)
+        try: return {"source": f, **extract(txt)}
+        except Exception as e: return {"source": f, "topic": "", "name": "", "date": "", "questions": parse(txt), "filled_by": "",
+                                       "note": f"The model couldn't fill it in ({str(e)[:120]})"}
     except Exception: os.remove(f"{INBOX}/{f}"); raise
 
-def parse(f):
-    """A line ending in '?' starts a question; the lines after it, up to the next question, are the notes."""
+def read_text(f):
     p = f"{INBOX}/{os.path.basename(f)}"
-    txt = open(p, errors="replace").read() if f.lower().endswith((".txt", ".md", ".markdown")) else \
+    return open(p, errors="replace").read() if f.lower().endswith((".txt", ".md", ".markdown")) else \
         subprocess.run(["textutil", "-convert", "txt", "-stdout", p], capture_output=True, text=True, check=True).stdout  # docx, doc, rtf, odt, html...
+
+def clean(line):
+    t = re.sub(r"\*\*|__|`", "", line)  # markdown emphasis
+    return re.sub(r"^\s*(?:[-*•#>]+\s*)?(?:\(?\d+[.)]|Q\d*[:.)]|A[:.)])?\s*", "", t).strip()  # bullets, numbering, Q:/A:
+
+def parse(txt):
+    """A line ending in '?' starts a question; the lines after it, up to the next question, are the notes."""
     qs, cur = [], None
-    for line in txt.splitlines():
-        t = re.sub(r"\*\*|__|`", "", line)  # markdown emphasis
-        t = re.sub(r"^\s*(?:[-*•#>]+\s*)?(?:\(?\d+[.)]|Q\d*[:.)]|A[:.)])?\s*", "", t).strip()  # bullets, numbering, Q:/A:
+    for t in map(clean, txt.splitlines()):
         if t.endswith("?"): cur = {"q": t, "a": ""}; qs.append(cur)
         elif cur is not None and t: cur["a"] += t + "\n"
     if not qs: raise ValueError("no questions found: each question must be on its own line and end with '?'")
     return [{"q": x["q"], "a": x["a"].strip()} for x in qs]
+
+def extract(txt):
+    """The default model finds topic, name, date and the questions; notes are then cut from the file verbatim."""
+    gid, label = pick("")
+    prompt = f"""This is an interview questionnaire. Return ONLY JSON:
+{{"topic": "a short title for the interview: the show, outlet or subject, as stated",
+ "name": "the host, interviewer or show name, if stated, else empty",
+ "date": "the interview or recording date as YYYY-MM-DD, if stated, else empty",
+ "questions": ["every question the guest will be asked, in order, copied exactly as written"]}}
+Copy text exactly; never invent, reword or summarize. Prepared answers or notes under a question are not questions.
+
+{txt[:60000]}"""
+    d = json.loads(re.search(r"\{.*\}", ask(prompt, gid), re.S).group(0))
+    lines = [clean(l) for l in txt.splitlines()]
+    found, start = [], 0  # (question, line index or None), matched in order
+    for q in (clean(str(x)) for x in d.get("questions", [])):
+        i = next((k for k in range(start, len(lines)) if q and lines[k] and (q in lines[k] or lines[k] in q and len(lines[k]) > 20)), None)
+        found.append((q, i))
+        if i is not None: start = i + 1
+    if not found: raise ValueError("the model found no questions")
+    idx = [i for _, i in found if i is not None] + [len(lines)]
+    qs = [{"q": q, "a": "" if i is None else "\n".join(l for l in lines[i + 1:min(j for j in idx if j > i)] if l)} for q, i in found]
+    date = str(d.get("date", "")) if re.fullmatch(r"\d{4}-\d\d-\d\d", str(d.get("date", ""))) else ""
+    return {"topic": str(d.get("topic", "")).strip(), "name": str(d.get("name", "")).strip(), "date": date,
+            "questions": qs, "filled_by": label}
 
 def details(t):
     topic, name, date = (str(t.get(k, "")).strip() for k in ("topic", "name", "date"))

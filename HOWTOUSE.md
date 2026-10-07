@@ -37,8 +37,11 @@ Click **+ New session** and fill in:
   (`Product-1`, `Product-2`).
 - **Grader**: leave it on **Default (…)** to use the dashboard choice, or pick a model just for this session.
 - **Questions**, one per row, each with optional notes for yourself. To skip the typing, click **Import questions from a file** and
-  choose a questionnaire (.txt, .md, .docx, .rtf, .odt, .html). Each line ending in `?` becomes a question, and the lines after it its notes. Check the rows before
-  you continue.
+  choose a questionnaire (.txt, .md, .docx, .rtf, .odt, .html). Your default grader model reads it (10 to 20
+  seconds) and fills in the topic, name, date and questions, including ones that don't end in `?`. Your notes are
+  copied from the file word for word. The line under the button says which model filled it in. The model can pick
+  up things that aren't interview questions, such as a request to the guest, or a section heading inside a note:
+  check the form and remove what you don't want. Without a model, every line ending in `?` becomes a question.
 
 Click **Create and rehearse**.
 

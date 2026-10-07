@@ -41,7 +41,7 @@ label input,label textarea,label select{text-transform:none;letter-spacing:0;col
   <p class="mute">Session ID: <b id="sid">—</b></p>
   <div id="qpart">
    <label>Import questions from a file<input id="src" type="file" accept=".txt,.md,.markdown,.docx,.doc,.rtf,.odt,.html,.htm"></label>
-   <p class="mute">A .txt, .md, .docx, .rtf, .odt or .html file. Each line ending in "?" becomes a question, and the lines after it its notes. Check the rows before you create the session.</p>
+   <p class="mute" id="srcstat">A .txt, .md, .docx, .rtf, .odt or .html file. Your default grader reads it and fills in the topic, name, date and questions; the notes under each question are copied from the file as they are. Check everything before you create the session.</p>
   </div>
   <p class="mute" id="renum" hidden>Takes are filed by question number, so removing or adding a question in the middle shifts the numbers for earlier takes. Editing a question's text in place is safe.</p>
   <div id="qs"></div>
@@ -92,9 +92,11 @@ function addQ(x={q:"",a:""},focus=true){
  $("qs").append(row);if(focus)row.querySelector("textarea").focus();
 }
 let srcName="";  // name of the uploaded questionnaire, moved into the session folder on create
-$("src").onchange=()=>{const f=$("src").files[0];srcName="";if(!f)return;$("ferr").textContent="";
- fetch("/api/upload?name="+encodeURIComponent(f.name),{method:"POST",body:f}).then(r=>r.json()).then(d=>{if(d.error){$("ferr").textContent=d.error;$("src").value="";return}
-  srcName=d.source;$("qs").replaceChildren();d.questions.forEach(x=>addQ(x,false));if(!$("topic").value)$("topic").focus()})
+$("src").onchange=()=>{const f=$("src").files[0];srcName="";if(!f)return;$("ferr").textContent="";$("srcstat").textContent="Reading the questionnaire…";
+ fetch("/api/upload?name="+encodeURIComponent(f.name),{method:"POST",body:f}).then(r=>r.json()).then(d=>{if(d.error){$("ferr").textContent=d.error;$("src").value="";$("srcstat").textContent="";return}
+  srcName=d.source;$("qs").replaceChildren();d.questions.forEach(x=>addQ(x,false));
+  for(const k of ["topic","name"])if(d[k]&&!$(k).value)$(k).value=d[k];if(d.date)$("date").value=d.date;$("topic").oninput();
+  $("srcstat").textContent=(d.filled_by?`Filled in by ${d.filled_by}: `:`${d.note}, so only lines ending in "?" became questions: `)+`${d.questions.length} questions. Check everything before you create the session.`;$("topic").focus()})
   .catch(()=>$("ferr").textContent="Couldn't reach the server.")};
 let G={options:[],default:null};
 function graders(){return fetch("/api/graders").then(r=>r.json()).then(g=>{G=g;

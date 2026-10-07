@@ -55,7 +55,10 @@ Step-by-step instructions, with every button and setting: [HOWTOUSE.md](HOWTOUSE
 
 1. **Create a session.** On the dashboard, click **+ New session** and fill in the topic, a name, the date, and your
    questions, with optional notes for yourself under each. To skip the typing, choose your questionnaire (.txt, .md, .docx, .rtf, .odt, .html) under
-   **Import questions from a file**: every line ending in `?` becomes a question, and the lines after it its notes. Check the rows before you create the session; the file then moves into the session's folder. Each
+   **Import questions from a file**: your default grader model reads it and fills in the topic, name, date and
+   questions, even ones that don't end in `?`. The notes under each question are copied from the file as they are,
+   never rewritten. Without a model, every line ending in `?` becomes a question. Check the form before you create
+   the session; the file then moves into the session's folder. Each
    session gets an ID made of the topic's first word and a counter, such as `Product-1`, `Product-2`.
 2. **Rehearse.** Open the session and answer each question aloud. Chrome shows a rough live transcript while you talk; when you stop, Whisper's transcript replaces it, and every number on the page comes from Whisper.
 3. **Read the feedback.** When you stop, Whisper transcribes the recording with word timings and fillers kept
