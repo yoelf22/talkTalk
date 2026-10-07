@@ -37,6 +37,8 @@ label input,label textarea,label select{text-transform:none;letter-spacing:0;col
    <label>Name<input id="name" required></label>
    <label style="flex:0 1 200px">Date<input id="date" type="date" required></label>
   </div>
+  <label>Grader<select id="grader"><option value="auto">Auto</option><option value="claude">Claude Code</option><option value="openai">OpenAI</option></select></label>
+  <p class="mute" id="graderhint"></p>
   <p class="mute">Session ID: <b id="sid">—</b></p>
   <div id="qpart">
    <label>Import questions from a file<select id="src"></select></label>
@@ -82,15 +84,18 @@ function loadFiles(){fetch("/api/files").then(r=>r.json()).then(d=>{
 $("src").onchange=()=>{const f=$("src").value;if(!f)return;$("ferr").textContent="";
  fetch("/api/parse?f="+encodeURIComponent(f)).then(r=>r.json()).then(d=>{if(d.error){$("ferr").textContent=d.error;return}
   $("qs").replaceChildren();d.forEach(x=>addQ(x,false));if(!$("topic").value)$("topic").focus()})};
-function mode(sess){editing=sess;$("ftitle").textContent=sess?"Edit session":"New session";$("submit").textContent=sess?"Save":"Create and rehearse";
+function graders(){fetch("/api/graders").then(r=>r.json()).then(g=>{
+ for(const o of $("grader").options)if(o.value!=="auto")o.textContent=(o.value==="claude"?"Claude Code":"OpenAI")+(g[o.value]?"":" (not set up)");
+ $("graderhint").textContent=`Only the transcript and its measurements are sent. Auto uses Claude Code if it's installed, otherwise OpenAI. Available now: ${["claude","openai"].filter(k=>g[k]).map(k=>k==="claude"?"Claude Code":"OpenAI").join(", ")||"none"}.`})}
+function mode(sess){graders();editing=sess;$("ftitle").textContent=sess?"Edit session":"New session";$("submit").textContent=sess?"Save":"Create and rehearse";
  $("qpart").hidden=!!sess;$("renum").hidden=!sess;$("ferr").textContent="";$("form").hidden=false;$("form").scrollIntoView()}
-function edit(x){mode(x);for(const k of ["topic","name","date"])$(k).value=x[k]||"";$("qs").replaceChildren();x.questions.forEach(q=>addQ(q,false));$("sid").textContent=x.id+" (stays the same)";$("topic").focus()}
-$("new").onclick=()=>{if(editing){for(const k of ["topic","name","date"])$(k).value="";$("qs").replaceChildren()}mode(null);$("sid").textContent="—";loadFiles();$("date").value||=new Date().toISOString().slice(0,10);if(!$("qs").children.length)addQ();$("topic").focus()};
+function edit(x){mode(x);for(const k of ["topic","name","date"])$(k).value=x[k]||"";$("grader").value=x.grader||"auto";$("qs").replaceChildren();x.questions.forEach(q=>addQ(q,false));$("sid").textContent=x.id+" (stays the same)";$("topic").focus()}
+$("new").onclick=()=>{if(editing){for(const k of ["topic","name","date"])$(k).value="";$("grader").value="auto";$("qs").replaceChildren()}mode(null);$("sid").textContent="—";loadFiles();$("date").value||=new Date().toISOString().slice(0,10);if(!$("qs").children.length)addQ();$("topic").focus()};
 $("cancel").onclick=()=>{$("form").hidden=true;if(editing){editing=null;for(const k of ["topic","name","date"])$(k).value="";$("qs").replaceChildren()}};
 $("addq").onclick=addQ;
 $("topic").oninput=()=>editing||($("sid").textContent=$("topic").value.trim()?nextId($("topic").value):"—");
 $("form").onsubmit=e=>{e.preventDefault();$("ferr").textContent="";
- const det={topic:$("topic").value,name:$("name").value,date:$("date").value};
+ const det={topic:$("topic").value,name:$("name").value,date:$("date").value,grader:$("grader").value};
  const questions=[...$("qs").children].map(r=>({q:r.querySelector(".q").value,a:r.querySelector(".a").value})).filter(x=>x.q.trim());
  if(editing)return fetch("/api/session?s="+encodeURIComponent(editing.id),{method:"POST",body:JSON.stringify({...det,questions})}).then(r=>r.json())
   .then(d=>{if(d.error)return $("ferr").textContent=d.error;Object.assign(editing,d);editing=null;$("form").hidden=true;$("qs").replaceChildren();render()})

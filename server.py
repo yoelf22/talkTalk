@@ -1,6 +1,6 @@
 # Serves the rehearsal page on localhost (secure context for mic + speech), saves takes,
-# keeps interview sessions (questions typed in by the user), and grades each take: Whisper (local, word timestamps) -> metrics -> Claude grade + tip.
-import http.server, json, os, re, subprocess, threading, time
+# keeps interview sessions (questions typed in by the user), and grades each take: Whisper (local, word timestamps) -> metrics -> grade + tip from Claude Code or OpenAI.
+import http.server, json, os, re, shutil, subprocess, threading, time, urllib.request
 from urllib.parse import parse_qsl, urlsplit
 import whisper
 MODEL = whisper.load_model("small.en")  # loaded once; first load ~3 s
@@ -8,7 +8,10 @@ D = os.path.dirname(os.path.abspath(__file__))
 # Personal data lives outside the repo: <id>/session.json + <id>/takes/. Override with TALKTALK_DIR.
 S = os.environ.get("TALKTALK_DIR") or os.path.expanduser("~/Desktop/talk rehersals")
 SID = re.compile(r"[A-Za-z0-9][\w .'()-]*")  # session folder name: new ones are Word-N, but a folder may be renamed by hand
-CLAUDE = os.path.expanduser("~/.local/bin/claude")
+# Graders. Claude Code: found on PATH or at its default install path (the desktop app starts us with a bare PATH).
+CLAUDE = shutil.which("claude") or next((p for p in [os.path.expanduser("~/.local/bin/claude")] if os.path.exists(p)), None)
+# OpenAI: key and model from the environment; run.sh loads them from a gitignored .env next to this file.
+OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-5-mini")
 FILL = {"um", "uh", "er", "ah", "erm", "hmm", "mm"}
 
 def metrics(wjson):
@@ -40,7 +43,33 @@ def transcribe(audio, wjson):
     json.dump(r, open(wjson, "w"))
     return metrics(wjson)
 
-def grade(text, m):
+def graders():
+    return {"claude": bool(CLAUDE), "openai": bool(os.environ.get("OPENAI_API_KEY"))}
+
+def pick(choice):
+    """Session's grader choice -> the grader to use now. Auto prefers Claude Code, then OpenAI."""
+    have = graders()
+    if choice in ("claude", "openai"):
+        if have[choice]: return choice
+        raise RuntimeError("Grading needs Claude Code installed" if choice == "claude" else "Grading needs OPENAI_API_KEY in the .env file next to server.py")
+    for g in ("claude", "openai"):
+        if have[g]: return g
+    raise RuntimeError("No grader available: install Claude Code, or put OPENAI_API_KEY in the .env file next to server.py")
+
+def ask(prompt, who):
+    if who == "claude":
+        return subprocess.run([CLAUDE, "-p", "--model", "sonnet", "--tools", ""], input=prompt, capture_output=True,
+                              text=True, env={k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}, timeout=180).stdout
+    req = urllib.request.Request("https://api.openai.com/v1/chat/completions", headers={
+        "Authorization": "Bearer " + os.environ["OPENAI_API_KEY"], "Content-Type": "application/json"},
+        data=json.dumps({"model": OPENAI_MODEL, "messages": [{"role": "user", "content": prompt}],
+                         "response_format": {"type": "json_object"}}).encode())
+    try:
+        return json.load(urllib.request.urlopen(req, timeout=180))["choices"][0]["message"]["content"]
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"OpenAI {e.code}: {json.load(e).get('error', {}).get('message', '')}")
+
+def grade(text, m, choice="auto"):
     prompt = f"""You are a speaking coach. Someone is rehearsing an interview answer out loud. Judge ONLY how they said
 what they said. Do not judge what the answer contains: not whether it answers a question, not whether it is specific,
 detailed, vague or complete, not whether its claims are right. Never ask for a moment, an example, a fact, a date or
@@ -62,10 +91,9 @@ a detour to cut, a line to move, a stronger existing line to end on, or one deli
 
 Return ONLY JSON: {{"grade": "A|A-|B+|B|B-|C+|C|C-|D", "fluency": "<=12 words", "coherence": "<=12 words",
 "recommendation": "the single most useful fix for the next take, <=35 words, concrete, no preamble"}}"""
-    out = subprocess.run([CLAUDE, "-p", "--model", "sonnet", "--tools", ""], input=prompt, capture_output=True,
-                         text=True, env={k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}, timeout=180).stdout
-    g = json.loads(re.search(r"\{.*\}", out, re.S).group(0))
-    return g
+    who = pick(choice)
+    g = json.loads(re.search(r"\{.*\}", ask(prompt, who), re.S).group(0))
+    return {**g, "graded_by": "Claude Code (Sonnet)" if who == "claude" else f"OpenAI ({OPENAI_MODEL})"}
 
 def load(sid):
     if not SID.fullmatch(sid or ""): raise ValueError("bad session id")
@@ -103,7 +131,9 @@ def parse(f):
 def details(t):
     topic, name, date = (str(t.get(k, "")).strip() for k in ("topic", "name", "date"))
     if not (topic and name and date): raise ValueError("topic, name and date are required")
-    return {"topic": topic, "name": name, "date": date}
+    grader = t.get("grader") or "auto"
+    if grader not in ("auto", "claude", "openai"): raise ValueError("grader must be auto, claude or openai")
+    return {"topic": topic, "name": name, "date": date, "grader": grader}
 
 def questions(t):
     qs = [{"q": str(x.get("q", "")).strip(), "a": str(x.get("a", "")).strip()} for x in t.get("questions", [])]
@@ -143,6 +173,7 @@ class H(http.server.SimpleHTTPRequestHandler):
         try:
             if path == "/api/sessions": return s.reply(sessions())
             if path == "/api/session": return s.reply(load(a.get("s")))
+            if path == "/api/graders": return s.reply(graders())
             if path == "/api/files": return s.reply({"dir": S, "files": files()})
             if path == "/api/parse": return s.reply(parse(a.get("f", "")))
             if path == "/grade":
@@ -175,7 +206,7 @@ class H(http.server.SimpleHTTPRequestHandler):
         if m.get("words", 0) < 5:  # nothing to coach on; the recording and transcript are still kept
             return s.reply({"id": f"q{q}-{stamp}", "metrics": m, "transcript": text, "skipped": True})
         def bg():
-            try: r = grade(text, m)
+            try: r = grade(text, m, sess.get("grader", "auto"))
             except Exception as e: r = {"error": str(e)[:300]}
             json.dump({**r, "question": sess["questions"][q - 1]["q"], "metrics": m, "transcript": text}, open(base + ".grade.json", "w"), indent=1, ensure_ascii=False)
         threading.Thread(target=bg, daemon=True).start()

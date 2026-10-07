@@ -47,7 +47,7 @@ sentence that broke off, a detour to cut, a line to move, a stronger line of you
    questions again closer to the date. Every take (recording, transcript, grade) is saved in the session's folder.
 
 Recordings and transcription stay on your machine (Whisper runs locally). Only the transcript and its measurements go to
-Claude for grading, and Chrome's live transcript uses Google's speech recognition.
+the session's grader (Claude or OpenAI), and Chrome's live transcript uses Google's speech recognition.
 
 ## How it works
 
@@ -63,7 +63,7 @@ Claude for grading, and Chrome's live transcript uses Google's speech recognitio
    - pauses over 0.7 s and over 2 s, and pauses in the middle of a sentence
    - cut-off words ("I- I think")
 
-   Takes under 5 words are measured but not graded. Otherwise Claude (Sonnet, through the Claude Code CLI) grades the take from A to D, with a note on fluency, a note on
+   Takes under 5 words are measured but not graded. Otherwise the session's grader (Claude Code or OpenAI, see below) grades the take from A to D, with a note on fluency, a note on
    coherence, and one concrete fix for the next take.
 4. **Come back later.** The dashboard lists every session and can search them by topic, name or ID, so you
    can return to an earlier interview and rehearse it again. **Edit** on a session changes its topic, name, date,
@@ -73,8 +73,14 @@ Claude for grading, and Chrome's live transcript uses Google's speech recognitio
 
 - macOS with [Homebrew](https://brew.sh)
 - `brew install openai-whisper ffmpeg`
-- [Claude Code](https://claude.com/claude-code) installed at `~/.local/bin/claude` and logged in. Grading uses your
-  Claude login, not an API key.
+- A grader, one of:
+  - [Claude Code](https://claude.com/claude-code) installed and logged in. Grading uses your Claude login (Sonnet),
+    not an API key.
+  - An OpenAI API key. Create a file named `.env` next to `server.py` containing `OPENAI_API_KEY=sk-...`
+    (optionally `OPENAI_MODEL=...`; the default is `gpt-5-mini`). `.env` is gitignored, and `run.sh` loads it.
+
+  Each session picks its grader in the new-session form: **Auto** (Claude Code if installed, otherwise OpenAI),
+  **Claude Code** or **OpenAI**. The grade shows which one graded it.
 - Google Chrome (the live transcript uses its built-in speech recognition)
 
 `run.sh` starts the server with Homebrew's Python 3.11, because that is where the `openai-whisper` formula installs.

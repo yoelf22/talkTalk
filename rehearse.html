@@ -79,7 +79,7 @@ function stop(){
    $("gradetxt").textContent="Grading…";
    const poll=()=>fetch(`/grade?s=${SID}&id=${t.id}`).then(r=>r.json()).then(g=>{if(i+1!==qn)return;if(g.pending)return setTimeout(poll,1000);
     $("gradetxt").innerHTML="";if(g.error){$("grade").textContent="?";add("Grading failed:",g.error);return}
-    $("grade").textContent=g.grade;add("Next take:",g.recommendation);add("Fluency:",g.fluency);add("Coherence:",g.coherence)});
+    $("grade").textContent=g.grade;add("Next take:",g.recommendation);add("Fluency:",g.fluency);add("Coherence:",g.coherence);if(g.graded_by)add("Graded by:",g.graded_by)});
    poll();
   }).catch(()=>{$("grade").textContent="?";$("gradetxt").textContent="Couldn't reach the grading server."})};mr.stop();
 }
