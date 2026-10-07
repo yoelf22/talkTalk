@@ -153,14 +153,20 @@ def sessions():
         out.append(x)
     return sorted(out, key=lambda x: x["date"], reverse=True)
 
-def files():
-    """Questionnaire files dropped in the data folder root, waiting to be imported."""
-    return sorted(f for f in os.listdir(S) if os.path.isfile(f"{S}/{f}") and not f.startswith(".") and f != "talkTalk.html")
+INBOX = f"{S}/.inbox"  # uploaded questionnaires wait here until their session is created
+
+def upload(name, body):
+    """Keeps an uploaded questionnaire and returns its questions."""
+    f = os.path.basename(name or "")
+    if not f or f.startswith(".") or not body: raise ValueError("choose a questionnaire file")
+    os.makedirs(INBOX, exist_ok=True)
+    open(f"{INBOX}/{f}", "wb").write(body)
+    try: return {"source": f, "questions": parse(f)}
+    except Exception: os.remove(f"{INBOX}/{f}"); raise
 
 def parse(f):
-    """A line ending in '?' starts a question; the lines after it, up to the next question, are the written answer."""
-    if f not in files(): raise ValueError("no such file in the folder")
-    p = f"{S}/{f}"
+    """A line ending in '?' starts a question; the lines after it, up to the next question, are the notes."""
+    p = f"{INBOX}/{os.path.basename(f)}"
     txt = open(p, errors="replace").read() if f.lower().endswith((".txt", ".md", ".markdown")) else \
         subprocess.run(["textutil", "-convert", "txt", "-stdout", p], capture_output=True, text=True, check=True).stdout  # docx, doc, rtf, odt, html...
     qs, cur = [], None
@@ -196,13 +202,13 @@ def create(t):
     d = details(t)
     qs = questions(t)
     src = t.get("source") or None
-    if src and src not in files(): raise ValueError("questionnaire file is no longer in the folder")
+    if src and not os.path.isfile(f"{INBOX}/{os.path.basename(src)}"): raise ValueError("upload the questionnaire again")
     word = re.sub(r"[^A-Za-z0-9]", "", d["topic"].split()[0]) or "Session"
     n = 1 + max([int(m[1]) for x in (os.listdir(S) if os.path.isdir(S) else []) if (m := re.fullmatch(re.escape(word) + r"-(\d+)", x))], default=0)
     sid = f"{word}-{n}"
     os.makedirs(f"{S}/{sid}/takes")
     sess = {"id": sid, **d, "questions": qs, "source": src}
-    if src: os.rename(f"{S}/{src}", f"{S}/{sid}/{src}")  # the questionnaire moves in with its session
+    if src: os.rename(f"{INBOX}/{os.path.basename(src)}", f"{S}/{sid}/{os.path.basename(src)}")  # the questionnaire moves in with its session
     json.dump(sess, open(f"{S}/{sid}/session.json", "w"), indent=1, ensure_ascii=False)
     return sess
 
@@ -218,8 +224,6 @@ class H(http.server.SimpleHTTPRequestHandler):
             if path == "/api/sessions": return s.reply(sessions())
             if path == "/api/session": return s.reply(load(a.get("s")))
             if path == "/api/graders": return s.reply(graders())
-            if path == "/api/files": return s.reply({"dir": S, "files": files()})
-            if path == "/api/parse": return s.reply(parse(a.get("f", "")))
             if path == "/grade":
                 load(a.get("s"))
                 f = f"{S}/{a['s']}/takes/{os.path.basename(a.get('id', ''))}.grade.json"
@@ -233,6 +237,7 @@ class H(http.server.SimpleHTTPRequestHandler):
         stamp = time.strftime("%Y%m%d-%H%M%S")
         try:
             if path == "/api/sessions": return s.reply(create(json.loads(body)))
+            if path == "/api/upload": return s.reply(upload(a.get("name"), body))
             if path == "/api/session": return s.reply(update(a.get("s"), json.loads(body)))
             if path == "/api/openai-key": return s.reply(save_key(json.loads(body).get("key")))
             if path == "/api/grader": return s.reply(set_default(json.loads(body).get("id")))

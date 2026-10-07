@@ -36,9 +36,8 @@ Click **+ New session** and fill in:
 - **Topic**, **Name** and **Date**. The session ID is made from the topic's first word plus a counter
   (`Product-1`, `Product-2`).
 - **Grader**: leave it on **Default (…)** to use the dashboard choice, or pick a model just for this session.
-- **Questions**, one per row, each with optional notes for yourself. To skip the typing, drop a questionnaire
-  (.txt, .md, .docx, .rtf, .odt, .html) into the `talk rehersals` folder and pick it under **Import questions
-  from a file**. Each line ending in `?` becomes a question, and the lines after it its notes. Check the rows before
+- **Questions**, one per row, each with optional notes for yourself. To skip the typing, click **Import questions from a file** and
+  choose a questionnaire (.txt, .md, .docx, .rtf, .odt, .html). Each line ending in `?` becomes a question, and the lines after it its notes. Check the rows before
   you continue.
 
 Click **Create and rehearse**.

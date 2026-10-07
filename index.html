@@ -40,8 +40,8 @@ label input,label textarea,label select{text-transform:none;letter-spacing:0;col
   <label>Grader<select id="grader"><option value="">Default</option></select></label>
   <p class="mute">Session ID: <b id="sid">—</b></p>
   <div id="qpart">
-   <label>Import questions from a file<select id="src"></select></label>
-   <p class="mute" id="srchint"></p>
+   <label>Import questions from a file<input id="src" type="file" accept=".txt,.md,.markdown,.docx,.doc,.rtf,.odt,.html,.htm"></label>
+   <p class="mute">A .txt, .md, .docx, .rtf, .odt or .html file. Each line ending in "?" becomes a question, and the lines after it its notes. Check the rows before you create the session.</p>
   </div>
   <p class="mute" id="renum" hidden>Takes are filed by question number, so removing or adding a question in the middle shifts the numbers for earlier takes. Editing a question's text in place is safe.</p>
   <div id="qs"></div>
@@ -91,12 +91,11 @@ function addQ(x={q:"",a:""},focus=true){
  rm.onclick=()=>{row.remove();[...$("qs").children].forEach((r,k)=>r.querySelector("label").firstChild.textContent=`Question ${k+1}`)};
  $("qs").append(row);if(focus)row.querySelector("textarea").focus();
 }
-function loadFiles(){fetch("/api/files").then(r=>r.json()).then(d=>{
- $("src").replaceChildren(el("option",{value:"",textContent:d.files.length?"Choose a file…":"No files in the folder"}),...d.files.map(f=>el("option",{value:f,textContent:f})));
- $("srchint").textContent=`Put a questionnaire (.txt, .md, .docx, .rtf, …) in ${d.dir} and it appears here. Each question must be on its own line and end with "?"; the lines after it become your notes. The file moves into the session's folder when you create it.`})}
-$("src").onchange=()=>{const f=$("src").value;if(!f)return;$("ferr").textContent="";
- fetch("/api/parse?f="+encodeURIComponent(f)).then(r=>r.json()).then(d=>{if(d.error){$("ferr").textContent=d.error;return}
-  $("qs").replaceChildren();d.forEach(x=>addQ(x,false));if(!$("topic").value)$("topic").focus()})};
+let srcName="";  // name of the uploaded questionnaire, moved into the session folder on create
+$("src").onchange=()=>{const f=$("src").files[0];srcName="";if(!f)return;$("ferr").textContent="";
+ fetch("/api/upload?name="+encodeURIComponent(f.name),{method:"POST",body:f}).then(r=>r.json()).then(d=>{if(d.error){$("ferr").textContent=d.error;$("src").value="";return}
+  srcName=d.source;$("qs").replaceChildren();d.questions.forEach(x=>addQ(x,false));if(!$("topic").value)$("topic").focus()})
+  .catch(()=>$("ferr").textContent="Couldn't reach the server.")};
 let G={options:[],default:null};
 function graders(){return fetch("/api/graders").then(r=>r.json()).then(g=>{G=g;
  const opt=o=>el("option",{value:o.id,textContent:o.label});
@@ -112,7 +111,7 @@ $("gdefault").onchange=()=>fetch("/api/grader",{method:"POST",body:JSON.stringif
 function mode(sess){graders();editing=sess;$("ftitle").textContent=sess?"Edit session":"New session";$("submit").textContent=sess?"Save":"Create and rehearse";
  $("qpart").hidden=!!sess;$("renum").hidden=!sess;$("ferr").textContent="";$("form").hidden=false;$("form").scrollIntoView()}
 function edit(x){mode(x);for(const k of ["topic","name","date"])$(k).value=x[k]||"";graders().then(()=>$("grader").value=x.grader&&x.grader!=="auto"?x.grader:"");$("qs").replaceChildren();x.questions.forEach(q=>addQ(q,false));$("sid").textContent=x.id+" (stays the same)";$("topic").focus()}
-$("new").onclick=()=>{if(editing){for(const k of ["topic","name","date"])$(k).value="";$("grader").value="";$("qs").replaceChildren()}mode(null);$("sid").textContent="—";loadFiles();$("date").value||=new Date().toISOString().slice(0,10);if(!$("qs").children.length)addQ();$("topic").focus()};
+$("new").onclick=()=>{if(editing){for(const k of ["topic","name","date"])$(k).value="";$("grader").value="";$("qs").replaceChildren()}mode(null);$("sid").textContent="—";$("src").value="";srcName="";$("date").value||=new Date().toISOString().slice(0,10);if(!$("qs").children.length)addQ();$("topic").focus()};
 $("cancel").onclick=()=>{$("form").hidden=true;if(editing){editing=null;for(const k of ["topic","name","date"])$(k).value="";$("qs").replaceChildren()}};
 $("addq").onclick=addQ;
 $("topic").oninput=()=>editing||($("sid").textContent=$("topic").value.trim()?nextId($("topic").value):"—");
@@ -122,7 +121,7 @@ $("form").onsubmit=e=>{e.preventDefault();$("ferr").textContent="";
  if(editing)return fetch("/api/session?s="+encodeURIComponent(editing.id),{method:"POST",body:JSON.stringify({...det,questions})}).then(r=>r.json())
   .then(d=>{if(d.error)return $("ferr").textContent=d.error;Object.assign(editing,d);editing=null;$("form").hidden=true;$("qs").replaceChildren();render()})
   .catch(()=>$("ferr").textContent="Couldn't reach the server.");
- fetch("/api/sessions",{method:"POST",body:JSON.stringify({...det,questions,source:$("src").value})})
+ fetch("/api/sessions",{method:"POST",body:JSON.stringify({...det,questions,source:srcName})})
   .then(r=>r.json()).then(d=>d.error?$("ferr").textContent=d.error:location.href="rehearse.html?s="+encodeURIComponent(d.id))
   .catch(()=>$("ferr").textContent="Couldn't reach the server.")};
 </script></body></html>
