@@ -51,6 +51,8 @@ the session's grader (Claude or OpenAI), and Chrome's live transcript uses Googl
 
 ## How it works
 
+Step-by-step instructions, with every button and setting: [HOWTOUSE.md](HOWTOUSE.md).
+
 1. **Create a session.** On the dashboard, click **+ New session** and fill in the topic, a name, the date, and your
    questions, with optional notes for yourself under each. To skip the typing, drop your questionnaire (.txt, .md, .docx, .rtf, .odt, .html…) into the data
    folder and pick it in the form: every line ending in `?` becomes a question, and the lines after it its notes. Check the rows before you create the session; the file then moves into the session's folder. Each
@@ -68,6 +70,16 @@ the session's grader (Claude or OpenAI), and Chrome's live transcript uses Googl
 4. **Come back later.** The dashboard lists every session and can search them by topic, name or ID, so you
    can return to an earlier interview and rehearse it again. **Edit** on a session changes its topic, name, date,
    questions and notes; the session ID stays the same.
+
+## Choosing the grader
+
+The **Grading** box on the dashboard checks what you can use and lists it: Claude Code's Sonnet, Opus and Haiku
+if Claude Code is installed, and every chat model your OpenAI API key can reach if you have one. Pick a model and it
+becomes the default for every session. A session can override it in its own form, and each grade names the model
+that graded it.
+
+Have an OpenAI key but haven't set `OPENAI_API_KEY`? Paste the key into the Grading box once. It's checked with
+OpenAI, kept on your Mac, and its models appear in the list right away.
 
 ## Requirements
 
