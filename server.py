@@ -10,8 +10,39 @@ S = os.environ.get("TALKTALK_DIR") or os.path.expanduser("~/Desktop/talk rehersa
 SID = re.compile(r"[A-Za-z0-9][\w .'()-]*")  # session folder name: new ones are Word-N, but a folder may be renamed by hand
 # Graders. Claude Code: found on PATH or at its default install path (the desktop app starts us with a bare PATH).
 CLAUDE = shutil.which("claude") or next((p for p in [os.path.expanduser("~/.local/bin/claude")] if os.path.exists(p)), None)
-# OpenAI: key and model from the environment; run.sh loads them from a gitignored .env next to this file.
-OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-5-mini")
+# OpenAI: the key comes from the environment (run.sh also borrows it from the login shell) or from a key the user
+# pasted on the dashboard, kept outside the repo and the data folder.
+KEYFILE = os.path.expanduser("~/.config/talktalk/openai_key")
+if not os.environ.get("OPENAI_API_KEY") and os.path.exists(KEYFILE):
+    os.environ["OPENAI_API_KEY"] = open(KEYFILE).read().strip()
+MODELS = ["gpt-5-mini", "gpt-4.1-mini", "gpt-4o-mini"]  # first one the key can use; OPENAI_MODEL overrides
+model = None
+
+def openai(path, body=None, key=None):
+    req = urllib.request.Request("https://api.openai.com/v1/" + path, data=body and json.dumps(body).encode(), headers={
+        "Authorization": "Bearer " + (key or os.environ["OPENAI_API_KEY"]), "Content-Type": "application/json"})
+    try:
+        return json.load(urllib.request.urlopen(req, timeout=180))
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"OpenAI {e.code}: {json.load(e).get('error', {}).get('message', '')}")
+
+def pick_model(key=None):
+    have = {x["id"] for x in openai("models", key=key)["data"]}
+    m = os.environ.get("OPENAI_MODEL") or next((x for x in MODELS if x in have), None)
+    if not m: raise RuntimeError("this OpenAI key can't use any of " + ", ".join(MODELS))
+    return m
+
+def save_key(key):
+    """Checks the key with OpenAI, then keeps it (owner-only file) and uses it right away."""
+    global model
+    key = str(key or "").strip()
+    if not key.startswith("sk-"): raise ValueError("that doesn't look like an OpenAI API key (they start with sk-)")
+    model = pick_model(key)
+    os.makedirs(os.path.dirname(KEYFILE), exist_ok=True)
+    fd = os.open(KEYFILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    os.write(fd, key.encode()); os.close(fd)
+    os.environ["OPENAI_API_KEY"] = key
+    return {**graders(), "model": model}
 FILL = {"um", "uh", "er", "ah", "erm", "hmm", "mm"}
 
 def metrics(wjson):
@@ -47,27 +78,23 @@ def graders():
     return {"claude": bool(CLAUDE), "openai": bool(os.environ.get("OPENAI_API_KEY"))}
 
 def pick(choice):
-    """Session's grader choice -> the grader to use now. Auto prefers Claude Code, then OpenAI."""
+    """Session's grader choice -> the grader to use now. Auto prefers OpenAI when a key is set (someone who added one wants it used), then Claude Code."""
     have = graders()
     if choice in ("claude", "openai"):
         if have[choice]: return choice
-        raise RuntimeError("Grading needs Claude Code installed" if choice == "claude" else "Grading needs OPENAI_API_KEY in the .env file next to server.py")
-    for g in ("claude", "openai"):
+        raise RuntimeError("Grading needs Claude Code installed" if choice == "claude" else "Grading needs an OpenAI key: add it on the dashboard")
+    for g in ("openai", "claude"):
         if have[g]: return g
-    raise RuntimeError("No grader available: install Claude Code, or put OPENAI_API_KEY in the .env file next to server.py")
+    raise RuntimeError("No grader available: add an OpenAI key on the dashboard, or install Claude Code")
 
 def ask(prompt, who):
     if who == "claude":
         return subprocess.run([CLAUDE, "-p", "--model", "sonnet", "--tools", ""], input=prompt, capture_output=True,
                               text=True, env={k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}, timeout=180).stdout
-    req = urllib.request.Request("https://api.openai.com/v1/chat/completions", headers={
-        "Authorization": "Bearer " + os.environ["OPENAI_API_KEY"], "Content-Type": "application/json"},
-        data=json.dumps({"model": OPENAI_MODEL, "messages": [{"role": "user", "content": prompt}],
-                         "response_format": {"type": "json_object"}}).encode())
-    try:
-        return json.load(urllib.request.urlopen(req, timeout=180))["choices"][0]["message"]["content"]
-    except urllib.error.HTTPError as e:
-        raise RuntimeError(f"OpenAI {e.code}: {json.load(e).get('error', {}).get('message', '')}")
+    global model
+    model = model or pick_model()
+    return openai("chat/completions", {"model": model, "messages": [{"role": "user", "content": prompt}],
+                                       "response_format": {"type": "json_object"}})["choices"][0]["message"]["content"]
 
 def grade(text, m, choice="auto"):
     prompt = f"""You are a speaking coach. Someone is rehearsing an interview answer out loud. Judge ONLY how they said
@@ -93,7 +120,7 @@ Return ONLY JSON: {{"grade": "A|A-|B+|B|B-|C+|C|C-|D", "fluency": "<=12 words", 
 "recommendation": "the single most useful fix for the next take, <=35 words, concrete, no preamble"}}"""
     who = pick(choice)
     g = json.loads(re.search(r"\{.*\}", ask(prompt, who), re.S).group(0))
-    return {**g, "graded_by": "Claude Code (Sonnet)" if who == "claude" else f"OpenAI ({OPENAI_MODEL})"}
+    return {**g, "graded_by": "Claude Code (Sonnet)" if who == "claude" else f"OpenAI ({model})"}
 
 def load(sid):
     if not SID.fullmatch(sid or ""): raise ValueError("bad session id")
@@ -190,6 +217,7 @@ class H(http.server.SimpleHTTPRequestHandler):
         try:
             if path == "/api/sessions": return s.reply(create(json.loads(body)))
             if path == "/api/session": return s.reply(update(a.get("s"), json.loads(body)))
+            if path == "/api/openai-key": return s.reply(save_key(json.loads(body).get("key")))
             sess, q = load(a.get("s")), int(a.get("q", 0))
             if not 1 <= q <= len(sess["questions"]): raise ValueError("bad question number")
         except Exception as e:

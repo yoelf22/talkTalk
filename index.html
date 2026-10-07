@@ -51,6 +51,12 @@ label input,label textarea,label select{text-transform:none;letter-spacing:0;col
   <p class="err" id="ferr"></p>
  </form>
 
+ <form class="box" id="keybox" hidden>
+  <div class="row"><label>OpenAI API key<input id="key" type="password" autocomplete="off" placeholder="sk-..."></label>
+   <button class="primary" type="submit" style="align-self:flex-end">Use OpenAI</button></div>
+  <p class="mute" id="keyhint">Have an OpenAI API key? Paste it once and every take is graded by OpenAI. It's checked with OpenAI, then kept on this Mac only (~/.config/talktalk). Only transcripts and their measurements are sent.</p>
+ </form>
+
  <input id="search" type="search" placeholder="Search by topic, name or session ID" aria-label="Search sessions">
  <div id="list" style="display:grid;gap:12px"><p class="mute">Loading…</p></div>
 </div>
@@ -68,7 +74,12 @@ function render(){
   ),ed)}):
   [el("p",{className:"mute"},S.length?"No session matches.":"No sessions yet. Start one with + New session.")]));
 }
-fetch("/api/sessions").then(r=>r.json()).then(d=>{S=d;render()});
+fetch("/api/sessions").then(r=>r.json()).then(d=>{S=d;render()});graders();
+$("keybox").onsubmit=e=>{e.preventDefault();$("keyhint").textContent="Checking the key with OpenAI…";
+ fetch("/api/openai-key",{method:"POST",body:JSON.stringify({key:$("key").value})}).then(r=>r.json()).then(d=>{$("key").value="";
+  if(d.error){$("keyhint").textContent=d.error;$("keyhint").className="err";return}
+  $("keyhint").className="mute";graders();$("list").before(el("p",{className:"mute"},`OpenAI is set up (${d.model}). Every session on Auto is now graded by OpenAI.`))})
+  .catch(()=>$("keyhint").textContent="Couldn't reach the server.")};
 $("search").oninput=render;
 
 function addQ(x={q:"",a:""},focus=true){
@@ -84,9 +95,9 @@ function loadFiles(){fetch("/api/files").then(r=>r.json()).then(d=>{
 $("src").onchange=()=>{const f=$("src").value;if(!f)return;$("ferr").textContent="";
  fetch("/api/parse?f="+encodeURIComponent(f)).then(r=>r.json()).then(d=>{if(d.error){$("ferr").textContent=d.error;return}
   $("qs").replaceChildren();d.forEach(x=>addQ(x,false));if(!$("topic").value)$("topic").focus()})};
-function graders(){fetch("/api/graders").then(r=>r.json()).then(g=>{
+function graders(){fetch("/api/graders").then(r=>r.json()).then(g=>{$("keybox").hidden=g.openai;
  for(const o of $("grader").options)if(o.value!=="auto")o.textContent=(o.value==="claude"?"Claude Code":"OpenAI")+(g[o.value]?"":" (not set up)");
- $("graderhint").textContent=`Only the transcript and its measurements are sent. Auto uses Claude Code if it's installed, otherwise OpenAI. Available now: ${["claude","openai"].filter(k=>g[k]).map(k=>k==="claude"?"Claude Code":"OpenAI").join(", ")||"none"}.`})}
+ $("graderhint").textContent=`Only the transcript and its measurements are sent. Auto uses OpenAI if a key is set, otherwise Claude Code. Available now: ${["claude","openai"].filter(k=>g[k]).map(k=>k==="claude"?"Claude Code":"OpenAI").join(", ")||"none"}.`})}
 function mode(sess){graders();editing=sess;$("ftitle").textContent=sess?"Edit session":"New session";$("submit").textContent=sess?"Save":"Create and rehearse";
  $("qpart").hidden=!!sess;$("renum").hidden=!sess;$("ferr").textContent="";$("form").hidden=false;$("form").scrollIntoView()}
 function edit(x){mode(x);for(const k of ["topic","name","date"])$(k).value=x[k]||"";$("grader").value=x.grader||"auto";$("qs").replaceChildren();x.questions.forEach(q=>addQ(q,false));$("sid").textContent=x.id+" (stays the same)";$("topic").focus()}
