@@ -1,0 +1,24 @@
+{
+ "grade": "D+",
+ "fluency": "60 wpm, 10 fillers, 30 per 100 words, pauses between nearly every phrase",
+ "coherence": "Restarts and abandoned sentences throughout; ends by repeating the opening line",
+ "recommendation": "Cut 'we're looking at, um, different things' and the restarts around it. Say 'more stores' once, pause, then close on 'maybe a feature for recipes' as your final line, with no 'I guess'.",
+ "graded_by": "Claude Code · Sonnet",
+ "question": "What's next for Quux?",
+ "metrics": {
+  "seconds": 33,
+  "words": 33,
+  "wpm": 60,
+  "fillers": 10,
+  "filler_words": {
+   "uh": 4,
+   "um": 6
+  },
+  "fillers_per_100w": 30.3,
+  "cutoffs": 0,
+  "pauses_0_7s": 10,
+  "pauses_2s": 1,
+  "mid_sentence_pauses": 0
+ },
+ "transcript": "Next, um. Next is, uh, we, we want to, um, more stores, I guess. And, uh, maybe, um. Maybe a feature for, uh, recipes? Or, um, I'm not, we're, uh, we're looking at, um, different things. So, um, yeah, more stores, I guess."
+}

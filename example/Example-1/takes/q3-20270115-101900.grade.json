@@ -1,0 +1,24 @@
+{
+ "grade": "C",
+ "fluency": "8.6 fillers per 100 words; 'the hardest part' and 'hiring' restarted; pace fine.",
+ "coherence": "Two topics compete; sentences restart and the ending hedges between them.",
+ "recommendation": "Cut 'well, there were a lot of hard parts' and the 'or maybe the hiring, it is hard to say' hedge. End on 'the data was the hard part' instead of 'So, yeah.'",
+ "graded_by": "Claude Code · Sonnet",
+ "question": "What was the hardest part of the first year?",
+ "metrics": {
+  "seconds": 42,
+  "words": 93,
+  "wpm": 132,
+  "fillers": 8,
+  "filler_words": {
+   "um": 5,
+   "uh": 3
+  },
+  "fillers_per_100w": 8.6,
+  "cutoffs": 0,
+  "pauses_0_7s": 4,
+  "pauses_2s": 0,
+  "mid_sentence_pauses": 0
+ },
+ "transcript": "The hardest part, um, the hardest part was, uh, well, there were a lot of hard parts. I mean the stores, um, every store is different, and the layouts change, and, uh, we had a problem with, with the data, because people would, um, tag things in the wrong aisle. And also hiring, hiring was hard, we, uh, we hired a designer who, um, actually she was great, she is still with us. But the data, yeah, so the data was the hard part, I think, or maybe the hiring, it is, um, it is hard to say really. So, yeah."
+}

@@ -1,0 +1,21 @@
+{
+ "grade": "A",
+ "fluency": "150 wpm, no fillers, no cut-offs, seven pauses all between sentences.",
+ "coherence": "One thread from definition to problem to fix to result, closing on a clear line.",
+ "recommendation": "Keep this shape. For polish, slow slightly on \"Families tell us they save about 10 minutes a visit\" so the number lands before your closing line, \"a list that knows where things are.\"",
+ "graded_by": "Claude Code · Sonnet",
+ "question": "What is Quux, in one sentence?",
+ "metrics": {
+  "seconds": 48,
+  "words": 119,
+  "wpm": 150,
+  "fillers": 0,
+  "filler_words": {},
+  "fillers_per_100w": 0.0,
+  "cutoffs": 0,
+  "pauses_0_7s": 7,
+  "pauses_2s": 0,
+  "mid_sentence_pauses": 0
+ },
+ "transcript": "Quucks is a shared shopping list for families that sorts itself by the aisles of the store you are standing in. We started with a simple observation. Every family we spoke to had a list, and every list was in the wrong order. You walk to the back of the store for milk, then to the front for bread, then to the back again for eggs. Quucks learns the layout of your local store from the people who shop there, and it reorders the list as you walk. The result is a shorter trip and fewer forgotten items. Families tell us they save about 10 minutes a visit. That is what Quucks is, a list that knows where things are."
+}

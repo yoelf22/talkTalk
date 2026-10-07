@@ -1,0 +1,24 @@
+{
+ "grade": "B-",
+ "fluency": "142 wpm is steady; three fillers; pauses fall between sentences.",
+ "coherence": "Detour into trucks and milk, then a fragment 'or R.' breaks the thread.",
+ "recommendation": "Cut the trucks-and-milk aside, then say 'routing a truck and routing a shop are close cousins' as one clean sentence, since 'or R.' broke off and the line before it restarted with 'Um, anyway'.",
+ "graded_by": "Claude Code · Sonnet",
+ "question": "Why did you start building it?",
+ "metrics": {
+  "seconds": 40,
+  "words": 94,
+  "wpm": 142,
+  "fillers": 3,
+  "filler_words": {
+   "um": 2,
+   "uh": 1
+  },
+  "fillers_per_100w": 3.2,
+  "cutoffs": 0,
+  "pauses_0_7s": 7,
+  "pauses_2s": 0,
+  "mid_sentence_pauses": 0
+ },
+ "transcript": "I started building quucks after, um, a very bad Saturday. I had a list with 20 items, and, uh, I walked the same store three times. So I thought there must be a better way to... order a list. My background is in logistics. I spent six years routing delivery trucks, which by the way is a very different problem, because trucks never forget the milk. Um, anyway, routing a truck and routing a shop or R. Close cousins. That was the idea. I built the first version in a month, and my family were the first users."
+}
